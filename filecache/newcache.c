@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include <time.h>
 #include <stdbool.h>
@@ -35,7 +36,7 @@ bool read_data_from_file_if_fresh(const cache_struct *cache, const char* file_na
         return false;
     }
 
-    time_t time_now = time(NULL);
+    uint32_t time_now = time(NULL);
     double time_difference = difftime(time_now, file_info.st_mtime);
     if(time_difference > cache->time_stamp)
     {
