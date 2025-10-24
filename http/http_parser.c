@@ -5,15 +5,31 @@
 
 /* (PR) The stuff we created last wednesday(?), start of basic http parser */
 
+/* save parsed data into HTTPREQUESTBLOB and HEADER */
+typedef struct Header {
+    char* keyName; 
+    char* KeyValue;
+    struct Header *next;
+} Header;
+
+typedef struct HttpRequestBlob {
+    char* method;
+    char* path;
+    char* version;
+    Header *Headers;
+    char* body;
+} HttpRequestBlob;
+
 
 int http_parse(const char* _InBuffer, size_t _InBufferSize, char* _OutBuffer)
 {
+    HttpRequestBlob* httpData = (HttpRequestBlob*)malloc(sizeof(HttpRequestBlob));
+    memset(httpData, 0, sizeof(httpData));
+
     char* dataCopy = strdup(_InBuffer);
-    char* ptr = dataCopy;
-    char* headers = NULL;
-    char* method = NULL;
-    char* path = NULL;
-    char* version = NULL;
+    char* ptr;
+
+    char* pch; 
 
     /*
     EXAMPLE OF HTTP TEXT:
@@ -23,53 +39,97 @@ int http_parse(const char* _InBuffer, size_t _InBufferSize, char* _OutBuffer)
     User-Agent: curl/8.0\r\n
     \r\n
 
-
     TO HELP MAKE PARSER LOGIC.
     */
 
-    do{
+    pch = strtok(dataCopy, "\r\n");
 
-        if (method == NULL)
-        {
-            method = ptr;
-        }
-        else if (path == NULL)
-        {
-            if(*(ptr) == ' ')
-            {
-                path = ptr +1;
-                *(ptr) = '\0';
+    while (pch != NULL)
+    {
+        /*printf("%s\n", pch);*/
+        ptr = pch;
+        do{
+            if(httpData->method != NULL && httpData->path != NULL && httpData->version != NULL){
+                char* keyPart = strchr(pch, ':');
+                if(keyPart) {
+                    *keyPart = '\0';
+                    char* keyName = pch;
+                    char* valueName = keyPart +1;
+                    
+                    while(*valueName == ' ') /* remove prefix white space */
+                    valueName++;
+                    
+                    Header* newHeader = (Header*)malloc(sizeof(Header));
+                    memset(newHeader, 0, sizeof(Header));
+
+                    newHeader->keyName = strdup(keyName);
+                    newHeader->KeyValue = strdup(valueName);
+                    newHeader->next = NULL;
+
+                    if(httpData->Headers == NULL)
+                    {
+                        httpData->Headers = newHeader;
+                    }else{
+                        Header* lastHdr = httpData->Headers;
+                        while(lastHdr->next)
+                            lastHdr = lastHdr->next;
+                        lastHdr->next = newHeader;
+                    }
+                    
+                }
             }
-        }
-        else if (version == NULL)
-        {
-            if(*(ptr) == ' ')
+
+            if(httpData->method == NULL)
             {
-                version = ptr +1;
-                *(ptr) = '\0';
-                
+                httpData->method = ptr;
             }
-
-        }
-        else if(headers == NULL)
-        {
-            if(*(ptr) == '\n')
+            else if(httpData->path == NULL)
             {
-                headers = ptr +1;
-                *(ptr) = '\0';
-                break;
+                if(*(ptr) == ' ')
+                {
+                    httpData->path = ptr +1;
+                    *(ptr) = '\0';
+                }
             }
-        }
+            else if(httpData->version == NULL)
+            {
+                if(*(ptr) == ' '){
+                    httpData->version = ptr +1;
+                    *(ptr) = '\0';
+                    break;
+                }
+            }
+            ptr++;
+        }while (*(ptr) != '\0');
 
-        ptr++;
+        pch = strtok(NULL, "\r\n");
+    }
 
-    }while (*(ptr) != '\0');
+    char* bodyStart = strstr(_InBuffer, "\r\n\r\n");
+    if(bodyStart != NULL)
+    {
+        bodyStart += 4; /* move past delimiter */
+        httpData->body = strdup(bodyStart);
+    }    
 
-    printf("Method : %s\n", method);
-    printf("Path   : %s\n", path);
-    printf("Version: %s\n", version);
 
-    printf("Headers: %s\n", headers);
+    ptr = dataCopy;
+
+    printf("httpdata method  : %s\n", httpData->method);
+    printf("httpdata path    : %s\n", httpData->path);
+    printf("httpdata version : %s\n", httpData->version);
+
+/* 	struct addrinfo *rp;
+	for(rp = res; rp; rp = rp->ai_next) */
+
+    struct Header* hdr;
+    for(hdr = httpData->Headers; hdr != NULL; hdr = hdr->next)
+    {
+        printf("Header Key Name  : %s\n", hdr->keyName);
+        printf("header Key Value : %s\n", hdr->KeyValue);
+    }
+
+    printf("Http body        : %s", httpData->body);
 
     return 0;
 }
@@ -78,13 +138,12 @@ int http_parseBody();
 
 int http_parseHeader();
 
-/*
+
 int main(){
 
-    char* httpStr = "GET /weather?city=Stockholm HTTP/1.1\r\nHost: 127.0.0.1\r\nUser-Agent: curl/8.0\r\n\r\n";
+    char* httpStr = "GET /weather?city=Stockholm HTTP/1.1\r\nHost: 127.0.0.1\r\nUser-Agent: curl/8.0\r\nContent-Length: 9\r\n\r\nBODY TEXT\r\n";
 
     http_parse(httpStr, 0, NULL);
 
     return 0;
 }
-*/

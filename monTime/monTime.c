@@ -1,5 +1,7 @@
 #include <time.h>
+#include <stdint.h>
 #include "monTime.h"
+
 uint64_t SystemMonotonicMS()
 {
 	long            ms;

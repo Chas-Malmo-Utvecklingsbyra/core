@@ -2,6 +2,8 @@
 #include <stdint.h>
 #include <time.h>
 
+#define CLOCK_MONOTONIC 1
+
 uint64_t SystemMonotonicMS()
 {
 	long            ms;
