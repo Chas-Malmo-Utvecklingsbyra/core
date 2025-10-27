@@ -32,7 +32,7 @@ static size_t http_response_write_callback(void* contents, size_t size, size_t n
     return realsize;
 }
 
-int Http_Initialize(Http* h)
+int http_initialize(Http* h)
 {
     h->curl = curl_easy_init();
 
@@ -45,7 +45,7 @@ int Http_Initialize(Http* h)
     return 0;
 }
 
-int Http_Perform(Http* h, const char* data, Http_Response* response)
+int http_perform(Http* h, const char* data, Http_Response* response)
 {
     curl_easy_setopt(h->curl, CURLOPT_URL, data);
     curl_easy_setopt(h->curl, CURLOPT_WRITEFUNCTION, http_response_write_callback);
@@ -62,7 +62,7 @@ int Http_Perform(Http* h, const char* data, Http_Response* response)
     return 0;
 }
 
-void Http_Dispose_Response(Http_Response* response) 
+void http_dispose_response(Http_Response* response) 
 {
     if (response == NULL)
     {
@@ -74,7 +74,7 @@ void Http_Dispose_Response(Http_Response* response)
     response->data = NULL;
 }
 
-void Http_Dispose(Http* h)
+void http_dispose(Http* h)
 {
     curl_easy_cleanup(h->curl);
 }

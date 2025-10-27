@@ -9,5 +9,4 @@
         "wind_gusts_10m,surface_pressure,pressure_msl&wind_speed_unit=ms";
 */
 
-
 #endif
