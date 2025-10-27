@@ -14,5 +14,8 @@ bool console_read_input(char *buffer, uint32_t buffer_length);
 /* Rensar stdin-bufferten */
 void console_flush_input(void);
 
+/* Kontrollerar om användaren vill avsluta programmet */
+bool console_is_quit_command(const char *input);
+
 #endif
 
