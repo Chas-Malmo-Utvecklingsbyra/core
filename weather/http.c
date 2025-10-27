@@ -87,7 +87,10 @@ int http_post(Http* h, const char* url, char* postData, struct curl_slist* heade
         return -2;
     }
 
-    curl_slist_free_all(headers);
+    if (headers)
+    {
+        curl_slist_free_all(headers);
+    }
     return 0;
 }
 
