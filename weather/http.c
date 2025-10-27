@@ -45,7 +45,7 @@ int http_initialize(Http* h)
     return 0;
 }
 
-int http_perform(Http* h, const char* data, Http_Response* response)
+int http_get(Http* h, const char* data, Http_Response* response)
 {
     curl_easy_setopt(h->curl, CURLOPT_URL, data);
     curl_easy_setopt(h->curl, CURLOPT_WRITEFUNCTION, http_response_write_callback);
@@ -59,6 +59,35 @@ int http_perform(Http* h, const char* data, Http_Response* response)
         return -1;
     }
 
+    return 0;
+}
+
+
+int http_post(Http* h, const char* url, char* postData, struct curl_slist* headers)
+{
+    if (h->curl == NULL)
+    {
+        printf("CURL has not been initialized!\n");
+        return -1;
+    }
+
+    curl_easy_setopt(h->curl, CURLOPT_URL, url);
+
+    if (headers)
+    {
+        curl_easy_setopt(h->curl, CURLOPT_HTTPHEADER, headers);
+    }
+
+    curl_easy_setopt(h->curl, CURLOPT_POSTFIELDS, postData);
+
+    CURLcode code = curl_easy_perform(h->curl);
+    if (code != CURLE_OK)
+    {
+        printf("Curl failed to post\n");
+        return -2;
+    }
+
+    curl_slist_free_all(headers);
     return 0;
 }
 
