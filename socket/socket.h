@@ -14,7 +14,7 @@ typedef enum {
 } Socket_Result;
 
 // Tries to bind the socket to the port.
-Socket_Result socket_open(const u32 port, Socket *out_socket);
+Socket_Result socket_open(const uint32_t port, Socket *out_socket);
 
 // Tries to close the socket.
 Socket_Result socket_close(Socket *socket);
