@@ -1,6 +1,7 @@
 #ifndef SOCKET_H
 #define SOCKET_H
 
+#include <stdint.h>
 // TODO: SS - Support different operating systems (and architectures(?)).
 
 typedef struct {
@@ -10,6 +11,9 @@ typedef struct {
 typedef enum {
     Socket_Result_OK,
     Socket_Result_Port_Already_Used,
+    Socket_Result_Invalid_Address,
+    Socket_Result_Connection_Failed,
+
     // ..
 } Socket_Result;
 

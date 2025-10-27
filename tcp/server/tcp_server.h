@@ -1,8 +1,10 @@
 #ifndef TCP_SERVER_H
 #define TCP_SERVER_H
 
+#define _POSIX_C_SOURCE 200809L
+
 #include "../shared/tcp_shared.h" // TODO: SS - Fix these paths using a Makefile.
-#include "../../../socket/socket.h" // TODO: SS - Fix these paths using a Makefile.
+#include "../../socket/socket.h" // TODO: SS - Fix these paths using a Makefile.
 
 #ifndef TCP_MAX_CLIENTS_PER_SERVER
 // NOTE: SS - Slightly annoying because this means that all servers have to have max N clients if we'd have multiple servers per program for example.
@@ -21,7 +23,7 @@ typedef struct {
 
 typedef struct {
     Socket socket;
-
+    int port;
     TCP_Server_Client clients[TCP_MAX_CLIENTS_PER_SERVER];
     uint32_t client_count;
 

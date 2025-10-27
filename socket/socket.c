@@ -3,20 +3,9 @@
 #include <arpa/inet.h>
 #include <sys/fcntl.h>
 #include <time.h>
+#include "socket.h"
 // TODO: SS - Support different operating systems (and architectures(?)).
 
-typedef struct {
-    uint32_t file_descriptor;
-} Socket;
-
-typedef enum {
-    Socket_Result_OK,
-    Socket_Result_Port_Already_Used,
-    Socket_Result_Invalid_Address,
-    Socket_Result_Connection_Failed,
-
-    // ..
-} Socket_Result;
 
 
 /* get this from other util lib later */
@@ -114,7 +103,7 @@ Socket_Result socket_write(Socket *socket, const uint8_t *buffer, const uint32_t
     {
         now = SystemMonotonicMS();
         
-        int bytesSent = send(socket->file_descriptor, ptr, bytesLeft, MSG_NOSIGNAL);
+        int bytesSent = send(socket->file_descriptor, (uint8_t*)ptr, bytesLeft, MSG_NOSIGNAL);
         if(bytesSent > 0)
         {
             ptr += bytesSent;
