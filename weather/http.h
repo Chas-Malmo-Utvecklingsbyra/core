@@ -3,7 +3,15 @@
 
 #include <curl/curl.h>
 
-typedef struct {
+typedef enum
+{
+    HTTP_SUCCESSFUL,
+    HTTP_ERROR_FAILED_TO_INITIALIZE,
+    HTTP_ERROR_FAILED_TO_PERFORM,
+} Http_Error;
+
+typedef struct 
+{
     CURL* curl;
 } Http;
 
@@ -13,11 +21,15 @@ typedef struct
     int size;
 } Http_Response;
 
-int http_initialize(Http* h);
-int http_get(Http* h, const char* url, Http_Response* response);
+/* returns: Http_Error enum*/
+Http_Error http_initialize(Http* h);
 
-/* return: -1, -2 for error, 0 is succesful. headers may be set to NULL if not included in post request. */
-int http_post(Http* h, const char* url, char* postData, struct curl_slist* headers);
+/* returns: Http_Error enum. Outputs a response*/
+Http_Error http_get(Http* h, const char* url, Http_Response* response);
+
+/* returns: Http_Error enum. headers may be set to NULL if not included in post request. */
+Http_Error http_post(Http* h, const char* url, char* postData, struct curl_slist* headers);
+
 void http_dispose_response(Http_Response* response);
 void http_dispose(Http* h);
 

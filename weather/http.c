@@ -32,21 +32,27 @@ static size_t http_response_write_callback(void* contents, size_t size, size_t n
     return realsize;
 }
 
-int http_initialize(Http* h)
+Http_Error http_initialize(Http* h)
 {
     h->curl = curl_easy_init();
 
     if (h->curl == NULL)
     {
         printf("Error initializing curl\n");
-        return -1;
+        return HTTP_ERROR_FAILED_TO_INITIALIZE;
     }
 
     return 0;
 }
 
-int http_get(Http* h, const char* url, Http_Response* response)
+Http_Error http_get(Http* h, const char* url, Http_Response* response)
 {
+    if (h->curl == NULL)
+    {
+        printf("Curl failed to Initialize");
+        return HTTP_ERROR_FAILED_TO_INITIALIZE;
+    }
+
     curl_easy_setopt(h->curl, CURLOPT_URL, url);
     curl_easy_setopt(h->curl, CURLOPT_WRITEFUNCTION, http_response_write_callback);
     curl_easy_setopt(h->curl, CURLOPT_WRITEDATA, (void*)response);
@@ -56,19 +62,19 @@ int http_get(Http* h, const char* url, Http_Response* response)
     if (code != CURLE_OK)
     {
         printf("Curl failed to perform\n");
-        return -1;
+        return HTTP_ERROR_FAILED_TO_PERFORM;
     }
 
-    return 0;
+    return HTTP_SUCCESSFUL;
 }
 
 
-int http_post(Http* h, const char* url, char* postData, struct curl_slist* headers)
+Http_Error http_post(Http* h, const char* url, char* postData, struct curl_slist* headers)
 {
     if (h->curl == NULL)
     {
         printf("CURL has not been initialized!\n");
-        return -1;
+        return HTTP_ERROR_FAILED_TO_INITIALIZE;
     }
 
     curl_easy_setopt(h->curl, CURLOPT_URL, url);
@@ -84,14 +90,14 @@ int http_post(Http* h, const char* url, char* postData, struct curl_slist* heade
     if (code != CURLE_OK)
     {
         printf("Curl failed to post\n");
-        return -2;
+        return HTTP_ERROR_FAILED_TO_PERFORM;
     }
 
     if (headers)
     {
         curl_slist_free_all(headers);
     }
-    return 0;
+    return HTTP_SUCCESSFUL;
 }
 
 void http_dispose_response(Http_Response* response) 
