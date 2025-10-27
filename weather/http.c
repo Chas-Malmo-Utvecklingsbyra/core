@@ -45,9 +45,9 @@ int http_initialize(Http* h)
     return 0;
 }
 
-int http_get(Http* h, const char* data, Http_Response* response)
+int http_get(Http* h, const char* url, Http_Response* response)
 {
-    curl_easy_setopt(h->curl, CURLOPT_URL, data);
+    curl_easy_setopt(h->curl, CURLOPT_URL, url);
     curl_easy_setopt(h->curl, CURLOPT_WRITEFUNCTION, http_response_write_callback);
     curl_easy_setopt(h->curl, CURLOPT_WRITEDATA, (void*)response);
 
