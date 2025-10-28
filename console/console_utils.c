@@ -30,11 +30,3 @@ void console_flush_input(void) {
     int ch;
     while ((ch = getchar()) != '\n' && ch != EOF);
 }
-
-/* Kontrollerar om användaren vill avsluta programmet */
-bool console_is_quit_command(const char *input) {
-    if (!input) return false;
-    
-    /* exit-kommando */
-    return (strcmp(input, "exit") == 0);
-}
