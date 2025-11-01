@@ -11,14 +11,14 @@ Weather_Response weather_get_data(const char* api)
     Weather_Response response = {0};
     response.error = true;
 
-    if (http_initialize(&h) == -1)
+    if (http_initialize(&h) == HTTP_ERROR_FAILED_TO_INITIALIZE)
     {
         printf("Http_Initialize returned -1 in weather_get_data\n");
         return response;
     }
 
     Http_Response http_resp = {0};
-    if (http_get(&h, api, &http_resp) == -1)
+    if (http_get(&h, api, &http_resp) == HTTP_ERROR_FAILED_TO_PERFORM)
     {
         printf("Http_Perform failed in weather_get_data\n");
         return response;
