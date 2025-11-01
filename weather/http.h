@@ -30,7 +30,10 @@ Http_Error http_get(Http* h, const char* url, Http_Response* response);
 /* returns: Http_Error enum. headers may be set to NULL if not included in post request. */
 Http_Error http_post(Http* h, const char* url, char* postData, struct curl_slist* headers);
 
+/* Disposes the response heap memory */
 void http_dispose_response(Http_Response* response);
+
+/* Disposes the response heap memory */
 void http_dispose(Http* h);
 
 #endif
