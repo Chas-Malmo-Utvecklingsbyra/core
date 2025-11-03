@@ -1,12 +1,18 @@
+#ifndef _POSIX_C_SOURCE
+#define _POSIX_C_SOURCE 200809L
+#endif
+
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <arpa/inet.h>
 #include <sys/fcntl.h>
 #include <time.h>
 #include "socket.h"
+#include <unistd.h>
+#include <assert.h>
+
 // TODO: SS - Support different operating systems (and architectures(?)).
-
-
 
 /* get this from other util lib later */
 
@@ -29,13 +35,14 @@ uint64_t SystemMonotonicMS()
 }
 
 // Tries to bind the socket to the port.
-Socket_Result socket_open(const uint32_t port, Socket *out_socket){
-
-    out_socket->file_descriptor = socket(AF_INET, SOCK_STREAM, 0);
-    if (out_socket->file_descriptor < 0) {
+Socket_Result socket_open(const uint32_t port, Socket *out_socket) {
+    int fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (fd < 0) {
         perror("Socket creation error");
         return Socket_Result_Port_Already_Used;
     }
+
+    out_socket->file_descriptor = (uint32_t)fd;
 
     struct sockaddr_in serv_addr;
     serv_addr.sin_family = AF_INET;
@@ -44,12 +51,13 @@ Socket_Result socket_open(const uint32_t port, Socket *out_socket){
     // 2. Konvertera IP-adress
     if (inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr) <= 0) {
         perror("Invalid address/Address not supported");
-    return Socket_Result_Invalid_Address;
+        return Socket_Result_Invalid_Address;
     }
+
     // 3. Anslut till servern
     if (connect(out_socket->file_descriptor, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
         perror("Connection Failed");
-    return Socket_Result_Connection_Failed;
+        return Socket_Result_Connection_Failed;
     }
 
     return Socket_Result_OK;
@@ -63,27 +71,31 @@ Socket_Result socket_close(Socket *socket){
 }
 
 // Tries to read (at most) 'buffer_size' bytes from the socket's 'file_descriptor' adds them to 'buffer'.
-Socket_Result socket_read(Socket *socket, uint8_t *buffer, const uint32_t buffer_size){
-    
+Socket_Result socket_read(Socket *socket, uint8_t *buffer, const uint32_t buffer_size) {
 	int totalBytesRead = 0;
     uint64_t now = SystemMonotonicMS();
     uint64_t timeout = now + 5000; /* 5 seconds timeout */
-    while(now < timeout)
-		{
-			now = SystemMonotonicMS();
+    while(now < timeout) {
+        now = SystemMonotonicMS();
 
-            int bytesRead = recv(socket->file_descriptor, buffer[totalBytesRead], buffer_size - totalBytesRead, MSG_DONTWAIT);
-			if (bytesRead > 0){
-				totalBytesRead += bytesRead;
-			}
-			
-			printf("bytesRead: %d\nTotalBytesRead: %d \n", bytesRead, totalBytesRead);
-			
+        int bytesRead = recv(
+            socket->file_descriptor,
+            &buffer[totalBytesRead],
+            buffer_size - totalBytesRead,
+            MSG_DONTWAIT
+        );
 
-			if(totalBytesRead == buffer_size)
-				break;
-		}
-
+        if (bytesRead > 0) {
+            totalBytesRead += bytesRead;
+        }
+        
+        printf("bytesRead: %d\nTotalBytesRead: %d \n", bytesRead, totalBytesRead);
+        
+        assert(totalBytesRead >= 0);
+        if((uint32_t)totalBytesRead == buffer_size) {
+            break;
+        }
+    }
 
     printf("Server: %s\n", buffer);
 
@@ -91,9 +103,8 @@ Socket_Result socket_read(Socket *socket, uint8_t *buffer, const uint32_t buffer
 }
 
 // Tries to write 'buffer_size' bytes from 'buffer' to the socket's 'file_descriptor'.
-Socket_Result socket_write(Socket *socket, const uint8_t *buffer, const uint32_t buffer_size){
-
-    const char* ptr = &buffer[0];
+Socket_Result socket_write(Socket *socket, const uint8_t *buffer, const uint32_t buffer_size) {
+    const uint8_t* ptr = &buffer[0];
     int bytesLeft = buffer_size;
 
     uint64_t now = SystemMonotonicMS();
@@ -103,21 +114,19 @@ Socket_Result socket_write(Socket *socket, const uint8_t *buffer, const uint32_t
     {
         now = SystemMonotonicMS();
         
-        int bytesSent = send(socket->file_descriptor, (uint8_t*)ptr, bytesLeft, MSG_NOSIGNAL);
+        int bytesSent = send(socket->file_descriptor, ptr, bytesLeft, MSG_NOSIGNAL);
         if(bytesSent > 0)
         {
             ptr += bytesSent;
             bytesLeft -= bytesSent;
         }
     }
+
     if(bytesLeft > 0)
     {
         printf("TIMEOUT ON WRITE!\r\n");
         return 1;
     }
-
-
-
 
     send(socket->file_descriptor, buffer, buffer_size, MSG_NOSIGNAL);
 

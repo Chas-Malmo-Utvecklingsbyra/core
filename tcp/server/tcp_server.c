@@ -1,4 +1,8 @@
+#ifndef _POSIX_C_SOURCE
 #define _POSIX_C_SOURCE 200809L
+#endif
+
+#include "tcp_server.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -11,12 +15,17 @@
 #include <arpa/inet.h>
 #include <stdint.h>
 
-#include "tcp_server.h"
+TCP_Server_Result tcp_server_init(TCP_Server *server, TCP_Server_Callback_On_Recieved_Bytes_From_Client on_received_bytes_from_client) {
+	(void)server;
+	(void)on_received_bytes_from_client;
 
+	server->port = 8080; // TODO: SS - Make this customizable.
 
-
+    return TCP_Server_Result_OK;
+}
 
 TCP_Server_Result tcp_server_start(TCP_Server *server){
+	// TODO: SS - Move some of the things from here to tcp_server_init(..).
 
     struct addrinfo hints = {0};
     struct addrinfo *res = NULL;
@@ -24,7 +33,8 @@ TCP_Server_Result tcp_server_start(TCP_Server *server){
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_PASSIVE;
 
-	if (getaddrinfo(NULL, server->port, &hints, &res) != 0)
+	const char *port_as_string = "8080"; // TEMP: SS - This should not be hardcoded.
+	if (getaddrinfo(NULL, port_as_string, &hints, &res) != 0)
 		return -1;
 
 	int fd = -1;
@@ -60,17 +70,13 @@ TCP_Server_Result tcp_server_start(TCP_Server *server){
 
 	return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 
-	server->socket.file_descriptor = (uint32_t*)fd;
+	server->socket.file_descriptor = (uint32_t)fd;
+
 	int i;
 	for (i = 0; i < TCP_MAX_CLIENTS_PER_SERVER; i++)
 		server->clients[i].socket.file_descriptor = -1;
 
-	printf("Server lyssnar på port %s\n", server->port);
-
-	return 0;
-
-
-
+	printf("Server lyssnar på port %u\n", server->port);
 
     return TCP_Server_Result_OK;
 }
@@ -94,38 +100,39 @@ TCP_Server_Result tcp_server_accept(TCP_Server *server){
 	fcntl(cfd, F_SETFL, flags | O_NONBLOCK);
 
 	/* Find free socket */
-	int i;
-	for (i = 0; i < TCP_MAX_CLIENTS_PER_SERVER; i++)
-	{
-		if (server->clients[i].socket.file_descriptor < 0)
-		{   
-            server->clients[i].unique_id = i;
-			server->clients[i].socket.file_descriptor = cfd;
-			printf("Ny klient accepterad (index %d)\n", server->clients[i].unique_id);
-			return 1;
-		}
+	uint32_t i;
+	for (i = 0; i < server->client_count; i++) {
+		TCP_Server_Client *client = &server->clients[i];
+
+		client->unique_id = i;
+		client->socket.file_descriptor = cfd;
+		printf("Ny klient accepterad (index %d)\n", client->unique_id);
+		return 1;
 	}
 
 	/* FULL */
 	close(cfd);
 	printf("Max klienter, anslutning avvisad\n");
 
-
     return TCP_Server_Result_OK;
 }
 
-TCP_Server_Result tcp_server_stop(TCP_Server *server);
+TCP_Server_Result tcp_server_stop(TCP_Server *server) {
+	(void)server;
 
-TCP_Server_Result tcp_server_dispose(TCP_Server *server){
-
-    	close(server->socket.file_descriptor);
-	int i;
-	for (i = 0; i < TCP_MAX_CLIENTS_PER_SERVER; i++)
-	{
-		if (server->clients[i].socket.file_descriptor >= 0)
-			close(server->clients[i].socket.file_descriptor);
-
-	}
+	printf("TODO: SS - Add 'tcp_server_stop'.\n");
+    return TCP_Server_Result_OK;
 }
 
+TCP_Server_Result tcp_server_dispose(TCP_Server *server){
+	uint32_t i;
+	for (i = 0; i < server->client_count; i++)
+	{
+		TCP_Server_Client *client = &server->clients[i];
+		close(client->socket.file_descriptor);
+	}
 
+	close(server->socket.file_descriptor);
+	
+    return TCP_Server_Result_OK;
+}
