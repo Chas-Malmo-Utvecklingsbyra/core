@@ -3,7 +3,7 @@
 
 #define _POSIX_C_SOURCE 200809L
 
-#include "shared/tcp_shared.h"
+#include "tcp/shared/tcp_shared.h"
 #include "socket/socket.h"
 
 #ifndef TCP_MAX_CLIENTS_PER_SERVER
