@@ -5,11 +5,11 @@
 
 /* Creates and returns a cJSON pointer that contains
 the data from the parsed JSON file */
-cJSON* Read_JSON_From_File(const char* _FileName)
+cJSON* json_read_from_file(const char* fileName)
 {
     /* Opens file in read mode and 
     ensures that it was successful */
-    FILE *file = fopen(_FileName, "r");
+    FILE *file = fopen(fileName, "r");
     if (file == NULL)
     {
         return NULL;
@@ -49,18 +49,18 @@ cJSON* Read_JSON_From_File(const char* _FileName)
 }
 
 /* Returns 0 for success and -1 for failure */
-int Write_Json_To_File(const char* _FileName, cJSON* _JSON_Object)
+int json_write_to_file(const char* fileName, cJSON* jsonObject)
 {
     /* Opens file in write mode and uses cJSON_Print to
     create valid JSON data that is then printed into file */
-    assert(_JSON_Object != NULL);
-    FILE *f = fopen(_FileName, "w");
+    assert(jsonObject != NULL);
+    FILE *f = fopen(fileName, "w");
     if (f == NULL)
     {
         printf("Error opening file\n");
         return -1;
     }
-    char* tempJsonStr = cJSON_Print(_JSON_Object);
+    char* tempJsonStr = cJSON_Print(jsonObject);
 
     fprintf(f, "%s\n", tempJsonStr);
     fclose(f);
@@ -69,9 +69,9 @@ int Write_Json_To_File(const char* _FileName, cJSON* _JSON_Object)
 }
 
 /* Attempts to open file in order to determine if it already exists */
-int DoesFileExist(const char* _FileName)
+int file_exists(const char* fileName)
 {
-    FILE *file = fopen(_FileName, "r");
+    FILE *file = fopen(fileName, "r");
     if (file)
     {
         fclose(file);
@@ -81,11 +81,11 @@ int DoesFileExist(const char* _FileName)
     }
 }
 
-/* Same as Read_JSON_From_File except it returns a 
+/* Same as json_read_from_file except it returns a 
 char* instead of a cJSON pointer */
-char* Read_JSON_From_File_Return_Char(const char* _FileName)
+char* json_read_from_file_Return_Char(const char* fileName)
 {
-    FILE *file = fopen(_FileName, "r");
+    FILE *file = fopen(fileName, "r");
     if (file == NULL)
     {
         return NULL;
@@ -108,9 +108,9 @@ char* Read_JSON_From_File_Return_Char(const char* _FileName)
     return JsonString;
 }
 
-int DeleteFile(const char* _FileName)
+int file_delete(const char* fileName)
 {
-    if (remove(_FileName) == 0)
+    if (remove(fileName) == 0)
     {
         return 0;
     } else {

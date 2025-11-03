@@ -3,14 +3,14 @@
 
 #include "../cJSON/cJSON.h"
 
-cJSON* Read_JSON_From_File(const char* _FileName);
+cJSON* json_read_from_file(const char* fileName);
 
-int Write_Json_To_File(const char* _FileName, cJSON* JSON_Object);
+int json_write_to_file(const char* fileName, cJSON* jsonObject);
 
-char* Read_JSON_From_File_Return(const char* _FileName);
+char* json_read_from_file_return(const char* fileName);
 
-int DoesFileExist(const char* _FileName);
+int file_exists(const char* fileName);
 
-int DeleteFile(_FileName);
+int file_delete(fileName);
 
 #endif
