@@ -1,48 +1,30 @@
 CC ?= gcc
+C_VERSION ?= c99
 
-SRC_DIR := .
-
-ifndef BUILD_DIR
-$(error no BUILD_DIR specified)
+ifndef OBJ_DIR
+$(error no OBJ_DIR specified)
 endif
 
-CVERSION ?= c90
+SRC_FILES := $(shell find $(SRC_DIR) -name "*.c")
 
-CFLAGS := -std=$(CVERSION) $(SRC_DIR) -Wall -Wextra -MMD -MP -I.
+INCLUDE_PATHS :=
 
-LDFLAGS := -flto -Wl,--gc-sections
+CFLAGS = -std=$(C_VERSION) -Wall -Wextra -Werror -Wpedantic $(addprefix -I,$(INCLUDE_PATHS))
 
-LIBS := 
+MY_OBJ_DIR = $(OBJ_DIR)/core
 
-SRC := $(shell find -L $(SRC_DIR) -type f -name '*.c')
+OBJS = $(patsubst %,$(MY_OBJ_DIR)/%,$(SRC_FILES))
+OBJS := $(OBJS:.c=.o)
 
-FILES_TO_TEST := $(shell find -L $(SRC_DIR) -type f -name '*.test')
+all: $(OBJS)
+	@echo "Done compiling Core! Flags: $(CFLAGS)."
 
-OBJ := $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(SRC))
-
-DEP := $(OBJ:.o=.d)
-
-BIN := server
-
-all: $(BIN)
-	@echo "Build complete."
-
-
-$(BIN): $(OBJ)
-	@$(CC) $(OBJ) -o $@ $(LDFLAGS) $(LIBS)
-
-
-$(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
-	@echo "Compiling $<..."
+$(MY_OBJ_DIR)/%.o: %.c
+	@echo "Compiling $< ..."
 	@mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -c $< -o $@
+	@$(CC) -c $< $(CFLAGS) -o $@
 
-run: $(BIN)
-	./$(BIN)
+clean_score:
+	@rm -rf $(MY_OBJ_DIR)
 
-clean:
-	@rm -rf $(BUILD_DIR) $(BIN)
-
--include $(DEP)
-
-.PHONY: all run clean
+.PHONY: all clean_score
