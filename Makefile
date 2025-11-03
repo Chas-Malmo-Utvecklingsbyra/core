@@ -8,7 +8,7 @@ endif
 
 CVERSION ?= c90
 
-CFLAGS := -std=$(CVERSION) $(SRC_DIR) -Wall -Wextra -MMD -MP
+CFLAGS := -std=$(CVERSION) $(SRC_DIR) -Wall -Wextra -MMD -MP -I.
 
 LDFLAGS := -flto -Wl,--gc-sections
 

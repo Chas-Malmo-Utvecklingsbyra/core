@@ -3,8 +3,8 @@
 
 #define _POSIX_C_SOURCE 200809L
 
-#include "../shared/tcp_shared.h" // TODO: SS - Fix these paths using a Makefile.
-#include "../../socket/socket.h" // TODO: SS - Fix these paths using a Makefile.
+#include "shared/tcp_shared.h"
+#include "socket/socket.h"
 
 #ifndef TCP_MAX_CLIENTS_PER_SERVER
 // NOTE: SS - Slightly annoying because this means that all servers have to have max N clients if we'd have multiple servers per program for example.
