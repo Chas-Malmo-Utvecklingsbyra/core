@@ -45,7 +45,7 @@ Http_Error http_initialize(Http* h)
     return 0;
 }
 
-Http_Error http_get(Http* h, const char* url, Http_Response* response)
+Http_Error http_get(Http* h, const char* url, Http_Response* response, struct curl_slist* headers)
 {
     if (h->curl == NULL)
     {
@@ -57,12 +57,22 @@ Http_Error http_get(Http* h, const char* url, Http_Response* response)
     curl_easy_setopt(h->curl, CURLOPT_WRITEFUNCTION, http_response_write_callback);
     curl_easy_setopt(h->curl, CURLOPT_WRITEDATA, (void*)response);
 
+    if (headers)
+    {
+        curl_easy_setopt(h->curl, CURLOPT_HTTPHEADER, headers);
+    }
+
     CURLcode code = curl_easy_perform(h->curl);
 
     if (code != CURLE_OK)
     {
         printf("Curl failed to perform\n");
         return HTTP_ERROR_FAILED_TO_PERFORM;
+    }
+
+    if (headers)
+    {
+        curl_slist_free_all(headers);
     }
 
     return HTTP_SUCCESSFUL;
