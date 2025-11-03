@@ -69,52 +69,24 @@ int json_write_to_file(const char* fileName, cJSON* jsonObject)
 }
 
 /* Attempts to open file in order to determine if it already exists */
-int file_exists(const char* fileName)
+bool file_exists(const char* fileName)
 {
     FILE *file = fopen(fileName, "r");
-    if (file)
-    {
-        fclose(file);
-        return 1;
-    } else {
-        return 0;
-    }
-}
-
-/* Same as json_read_from_file except it returns a 
-char* instead of a cJSON pointer */
-char* json_read_from_file_Return_Char(const char* fileName)
-{
-    FILE *file = fopen(fileName, "r");
-    if (file == NULL)
-    {
-        return NULL;
+    if(file == NULL) {
+        return false;
     }
 
-    fseek(file, 0, SEEK_END);
-    long length = ftell(file);
-    rewind(file);
-
-    char* JsonString = calloc(1, length + 1);
-    if (JsonString == NULL)
-    {
-        fclose(file);
-        printf("Memory allocation failed\n");
-        return NULL;
-    }
-    fread(JsonString, 1, length, file);
     fclose(file);
-    JsonString[length] = '\0';
-    return JsonString;
+    return true;
 }
 
-int file_delete(const char* fileName)
+bool file_delete(const char* fileName)
 {
-    if (remove(fileName) == 0)
+    if (remove(fileName) != 0)
     {
-        return 0;
-    } else {
-        perror("Failed to delete file");
-        return -1;
+        printf("Failed to delete file '%s'.", fileName);
+        return false;
     }
+
+    return true;
 }
