@@ -20,6 +20,7 @@ TCP_Server_Result tcp_server_init(TCP_Server *server, TCP_Server_Callback_On_Rec
 	(void)on_received_bytes_from_client;
 
 	server->port = 8080; // TODO: SS - Make this customizable.
+	server->on_received_bytes_from_client = on_received_bytes_from_client;
 
     return TCP_Server_Result_OK;
 }
@@ -68,7 +69,13 @@ TCP_Server_Result tcp_server_start(TCP_Server *server){
 	if (flags < 0)
 		return -1;
 
-	return fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+	/*return fcntl(fd, F_SETFL, flags | O_NONBLOCK);*/
+	int fcntl_result = fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+	if (fcntl_result == -1)
+	{
+		printf("errno: %d\n", errno);
+		return -1;
+	}
 
 	server->socket.file_descriptor = (uint32_t)fd;
 
@@ -98,6 +105,7 @@ TCP_Server_Result tcp_server_accept(TCP_Server *server){
 	if (flags < 0)
 		return -1;
 	fcntl(cfd, F_SETFL, flags | O_NONBLOCK);
+	server->client_count++;
 
 	/* Find free socket */
 	uint32_t i;
@@ -107,7 +115,7 @@ TCP_Server_Result tcp_server_accept(TCP_Server *server){
 		client->unique_id = i;
 		client->socket.file_descriptor = cfd;
 		printf("Ny klient accepterad (index %d)\n", client->unique_id);
-		return 1;
+		return TCP_Server_Result_OK;
 	}
 
 	/* FULL */
@@ -115,6 +123,27 @@ TCP_Server_Result tcp_server_accept(TCP_Server *server){
 	printf("Max klienter, anslutning avvisad\n");
 
     return TCP_Server_Result_OK;
+}
+
+TCP_Server_Result tcp_server_read(TCP_Server *server)
+{
+	size_t i;
+	for (i = 0; i < server->client_count; i++)
+	{
+		TCP_Server_Client *client = &server->clients[i];
+
+		Socket_Result read_result = socket_read(&client->socket, &client->receive_buffer[0], TCP_MAX_CLIENT_BUFFER_SIZE);
+
+		if (read_result != Socket_Result_OK)
+		{
+			printf("%s, read_result != ok\n", __FILE__);
+			continue;
+		}
+
+		server->on_received_bytes_from_client(server, client, &client->receive_buffer[0], TCP_MAX_CLIENT_BUFFER_SIZE);
+	}
+
+	return TCP_Server_Result_OK;
 }
 
 TCP_Server_Result tcp_server_stop(TCP_Server *server) {

@@ -24,7 +24,7 @@ Socket_Result socket_open(const uint32_t port, Socket *out_socket);
 Socket_Result socket_close(Socket *socket);
 
 // Tries to read (at most) 'buffer_size' bytes from the socket's 'file_descriptor' adds them to 'buffer'.
-Socket_Result socket_read(Socket *socket, uint8_t *buffer, const uint32_t buffer_size);
+Socket_Result socket_read(Socket *socket, uint8_t *buffer, const uint32_t buffer_size, int* out_TotalBytesRead);
 
 // Tries to write 'buffer_size' bytes from 'buffer' to the socket's 'file_descriptor'.
 Socket_Result socket_write(Socket *socket, const uint8_t *buffer, const uint32_t buffer_size);

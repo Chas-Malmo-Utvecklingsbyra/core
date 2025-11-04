@@ -71,7 +71,7 @@ Socket_Result socket_close(Socket *socket){
 }
 
 // Tries to read (at most) 'buffer_size' bytes from the socket's 'file_descriptor' adds them to 'buffer'.
-Socket_Result socket_read(Socket *socket, uint8_t *buffer, const uint32_t buffer_size) {
+Socket_Result socket_read(Socket *socket, uint8_t *buffer, const uint32_t buffer_size, int* out_TotalBytesRead) {
 	int totalBytesRead = 0;
     uint64_t now = SystemMonotonicMS();
     uint64_t timeout = now + 5000; /* 5 seconds timeout */
@@ -89,7 +89,7 @@ Socket_Result socket_read(Socket *socket, uint8_t *buffer, const uint32_t buffer
             totalBytesRead += bytesRead;
         }
         
-        printf("bytesRead: %d\nTotalBytesRead: %d \n", bytesRead, totalBytesRead);
+        //printf("bytesRead: %d\nTotalBytesRead: %d \n", bytesRead, totalBytesRead);
         
         assert(totalBytesRead >= 0);
         if((uint32_t)totalBytesRead == buffer_size) {
@@ -97,7 +97,8 @@ Socket_Result socket_read(Socket *socket, uint8_t *buffer, const uint32_t buffer
         }
     }
 
-    printf("Server: %s\n", buffer);
+    //printf("Server: %s\n", buffer);
+    *out_TotalBytesRead = totalBytesRead;
 
     return Socket_Result_OK;
 }
