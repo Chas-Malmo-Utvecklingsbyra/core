@@ -128,11 +128,12 @@ TCP_Server_Result tcp_server_accept(TCP_Server *server){
 TCP_Server_Result tcp_server_read(TCP_Server *server)
 {
 	size_t i;
+	int totalBytesRead = 0;
 	for (i = 0; i < server->client_count; i++)
 	{
 		TCP_Server_Client *client = &server->clients[i];
 
-		Socket_Result read_result = socket_read(&client->socket, &client->receive_buffer[0], TCP_MAX_CLIENT_BUFFER_SIZE);
+		Socket_Result read_result = socket_read(&client->socket, &client->receive_buffer[0], TCP_MAX_CLIENT_BUFFER_SIZE, &totalBytesRead);
 
 		if (read_result != Socket_Result_OK)
 		{
