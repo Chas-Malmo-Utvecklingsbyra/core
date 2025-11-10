@@ -89,33 +89,22 @@ Socket_Result socket_read(Socket *socket, uint8_t *buffer, const uint32_t buffer
 }
 
 /* Tries to write 'buffer_size' bytes from 'buffer' to the socket's 'file_descriptor'. */
-Socket_Result socket_write(Socket *socket, const uint8_t *buffer, const uint32_t buffer_size) {
-    const uint8_t* ptr = &buffer[0];
-    int bytesLeft = buffer_size;
-
-    uint64_t now = SystemMonotonicMS();
-    uint64_t timeout = now + 5000;
+Socket_Result socket_write(Socket *socket, const uint8_t *buffer, const uint32_t buffer_size, uint32_t *out_bytes_sent) {
     
-    while(bytesLeft > 0 && now < timeout)
+    *out_bytes_sent = 0;
+
+    int bytesSent = send(socket->file_descriptor, &buffer[0], buffer_size, MSG_NOSIGNAL);
+    if(bytesSent > 0)
     {
-        now = SystemMonotonicMS();
-        
-        int bytesSent = send(socket->file_descriptor, ptr, bytesLeft, MSG_NOSIGNAL);
-        if(bytesSent > 0)
-        {
-            ptr += bytesSent;
-            bytesLeft -= bytesSent;
-        }
+        *out_bytes_sent = (uint32_t)bytesSent;
+        return Socket_Result_OK;
     }
 
-    if(bytesLeft > 0)
-    {
-        printf("TIMEOUT ON WRITE!\r\n");
-        return 1;
-    }
+/* TODO: (PR) verifiera att buffer ej är NULL
+verifiera att buffer size är större än 0
+verifiera att socket inte ät NULL
+*/
 
-    send(socket->file_descriptor, buffer, buffer_size, MSG_NOSIGNAL);
-
-    return Socket_Result_OK;
+    return Socket_Result_Fail_Write_Timeout; /* TODO: Replace with better enum */
 }
 

@@ -12,7 +12,7 @@
 typedef struct TCP_Server TCP_Server;
 typedef struct TCP_Server_Client TCP_Server_Client;
 
-typedef void (*TCP_Server_Callback_On_Recieved_Bytes_From_Client)(const TCP_Server *server, const TCP_Server_Client *client, const uint8_t *buffer, const uint32_t buffer_size);
+typedef void (*TCP_Server_Callback_On_Recieved_Bytes_From_Client)(TCP_Server *server, TCP_Server_Client *client, const uint8_t *buffer, const uint32_t buffer_size);
 
 #ifndef TCP_MAX_CLIENT_BUFFER_SIZE
     #define TCP_MAX_CLIENT_BUFFER_SIZE 1024
@@ -22,7 +22,8 @@ struct TCP_Server_Client {
     uint32_t unique_id;
     Socket socket;
     uint8_t receive_buffer[TCP_MAX_CLIENT_BUFFER_SIZE];
-
+    uint8_t outgoing_buffer[TCP_MAX_CLIENT_BUFFER_SIZE];
+    uint32_t outgoing_buffer_amount_of_bytes;
     /* NOTE: SS - We could have two buffers here; one for input and one for output. 'receive_buffer'. */
 };
 
@@ -46,7 +47,8 @@ typedef enum {
     TCP_Server_Result_Error,
     TCP_Server_Result_Socket_Failure,
     TCP_Server_Result_Bind_Failure,
-    TCP_Server_Result_Listen_Failure
+    TCP_Server_Result_Listen_Failure,
+    TCP_Server_Result_Not_Enough_Space
 
     /* ... */
 } TCP_Server_Result;
@@ -55,11 +57,11 @@ TCP_Server_Result tcp_server_init(TCP_Server *server, int port, TCP_Server_Callb
 
 TCP_Server_Result tcp_server_start(TCP_Server *server);
 
-TCP_Server_Result tcp_server_accept(TCP_Server *server);
+TCP_Server_Result tcp_server_work(TCP_Server *server);
 
 TCP_Server_Result tcp_server_stop(TCP_Server *server);
 
-TCP_Server_Result tcp_server_read(TCP_Server *server);
+TCP_Server_Result tcp_server_send_to_client(TCP_Server *server, TCP_Server_Client *client, const uint8_t *buffer, const uint32_t buffer_size);
 
 TCP_Server_Result tcp_server_dispose(TCP_Server *server);
 
