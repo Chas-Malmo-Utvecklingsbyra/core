@@ -1,11 +1,11 @@
 #ifndef TCP_SERVER_H
 #define TCP_SERVER_H
 
-#include "../shared/tcp_shared.h" // TODO: SS - We should not have to go back here. Figure out why. Probably a problem with the Makefile.
+#include "../shared/tcp_shared.h" /* TODO: SS - We should not have to go back here. Figure out why. Probably a problem with the Makefile. */
 
 #ifndef TCP_MAX_CLIENTS_PER_SERVER
-// NOTE: SS - Slightly annoying because this means that all servers have to have max N clients if we'd have multiple servers per program for example.
-// It would be nice if we could specify this on a per-server basis.
+/* NOTE: SS - Slightly annoying because this means that all servers have to have max N clients if we'd have multiple servers per program for example. */
+/* It would be nice if we could specify this on a per-server basis. */
 #define TCP_MAX_CLIENTS_PER_SERVER 64
 #endif
 
@@ -23,12 +23,14 @@ struct TCP_Server_Client {
     Socket socket;
     uint8_t receive_buffer[TCP_MAX_CLIENT_BUFFER_SIZE];
 
-    // NOTE: SS - We could have two buffers here; one for input and one for output. 'receive_buffer'.
+    /* NOTE: SS - We could have two buffers here; one for input and one for output. 'receive_buffer'. */
 };
 
 struct TCP_Server {
     Socket socket;
-    int port;
+    char* portString;
+    int portInteger;
+    struct addrinfo* hints;
 
     TCP_Server_Client clients[TCP_MAX_CLIENTS_PER_SERVER];
     uint32_t client_count;
@@ -41,10 +43,15 @@ struct TCP_Server {
 typedef enum {
     TCP_Server_Result_OK,
     TCP_Server_Result_Port_In_Use,
-    // ..
+    TCP_Server_Result_Error,
+    TCP_Server_Result_Socket_Failure,
+    TCP_Server_Result_Bind_Failure,
+    TCP_Server_Result_Listen_Failure
+
+    /* ... */
 } TCP_Server_Result;
 
-TCP_Server_Result tcp_server_init(TCP_Server *server, TCP_Server_Callback_On_Recieved_Bytes_From_Client on_received_bytes_from_client);
+TCP_Server_Result tcp_server_init(TCP_Server *server, int port, TCP_Server_Callback_On_Recieved_Bytes_From_Client on_received_bytes_from_client);
 
 TCP_Server_Result tcp_server_start(TCP_Server *server);
 

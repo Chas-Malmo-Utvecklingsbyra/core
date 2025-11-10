@@ -7,34 +7,19 @@
 #include <stdlib.h>
 #include <arpa/inet.h>
 #include <sys/fcntl.h>
-#include <time.h>
 #include "socket.h"
 #include <unistd.h>
 #include <assert.h>
 
-// TODO: SS - Support different operating systems (and architectures(?)).
+#include "../utils/clock_monotonic.h"
 
-/* get this from other util lib later */
+/* TODO: SS - Support different operating systems (and architectures(?)). */
 
-#define CLOCK_MONOTONIC 1
-uint64_t SystemMonotonicMS()
-{
-	long            ms;
-	time_t          s;
+/* clock monotonic moved to utils directory */
 
-	struct timespec spec;
-	clock_gettime(CLOCK_MONOTONIC, &spec);
-	s  = spec.tv_sec;
-	ms = (spec.tv_nsec / 1000000);
 
-	uint64_t result = s;
-	result *= 1000;
-	result += ms;
 
-	return result;
-}
-
-// Tries to bind the socket to the port.
+/* Tries to bind the socket to the port. */
 Socket_Result socket_open(const uint32_t port, Socket *out_socket) {
     int fd = socket(AF_INET, SOCK_STREAM, 0);
     if (fd < 0) {
@@ -48,13 +33,13 @@ Socket_Result socket_open(const uint32_t port, Socket *out_socket) {
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(port);
 
-    // 2. Konvertera IP-adress
+    /* 2. Konvertera IP-adress */
     if (inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr) <= 0) {
         perror("Invalid address/Address not supported");
         return Socket_Result_Invalid_Address;
     }
 
-    // 3. Anslut till servern
+    /* 3. Anslut till servern */
     if (connect(out_socket->file_descriptor, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
         perror("Connection Failed");
         return Socket_Result_Connection_Failed;
@@ -63,14 +48,14 @@ Socket_Result socket_open(const uint32_t port, Socket *out_socket) {
     return Socket_Result_OK;
 }
 
-// Tries to close the socket.
+/* Tries to close the socket. */
 Socket_Result socket_close(Socket *socket){
     close(socket->file_descriptor);
     free(socket);
     return Socket_Result_OK;
 }
 
-// Tries to read (at most) 'buffer_size' bytes from the socket's 'file_descriptor' adds them to 'buffer'.
+/* Tries to read (at most) 'buffer_size' bytes from the socket's 'file_descriptor' adds them to 'buffer'. */
 Socket_Result socket_read(Socket *socket, uint8_t *buffer, const uint32_t buffer_size, int* out_TotalBytesRead) {
 	int totalBytesRead = 0;
     uint64_t now = SystemMonotonicMS();
@@ -89,7 +74,7 @@ Socket_Result socket_read(Socket *socket, uint8_t *buffer, const uint32_t buffer
             totalBytesRead += bytesRead;
         }
         
-        //printf("bytesRead: %d\nTotalBytesRead: %d \n", bytesRead, totalBytesRead);
+        /* printf("bytesRead: %d\nTotalBytesRead: %d \n", bytesRead, totalBytesRead); */
         
         assert(totalBytesRead >= 0);
         if((uint32_t)totalBytesRead == buffer_size) {
@@ -97,13 +82,13 @@ Socket_Result socket_read(Socket *socket, uint8_t *buffer, const uint32_t buffer
         }
     }
 
-    //printf("Server: %s\n", buffer);
+    /* printf("Server: %s\n", buffer); */
     *out_TotalBytesRead = totalBytesRead;
 
     return Socket_Result_OK;
 }
 
-// Tries to write 'buffer_size' bytes from 'buffer' to the socket's 'file_descriptor'.
+/* Tries to write 'buffer_size' bytes from 'buffer' to the socket's 'file_descriptor'. */
 Socket_Result socket_write(Socket *socket, const uint8_t *buffer, const uint32_t buffer_size) {
     const uint8_t* ptr = &buffer[0];
     int bytesLeft = buffer_size;

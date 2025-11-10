@@ -14,29 +14,56 @@
 #include <sys/types.h>
 #include <arpa/inet.h>
 #include <stdint.h>
+#include <stdlib.h>
 
-TCP_Server_Result tcp_server_init(TCP_Server *server, TCP_Server_Callback_On_Recieved_Bytes_From_Client on_received_bytes_from_client) {
-	(void)server;
-	(void)on_received_bytes_from_client;
+/*  initiate server 
+	provide port in range of 0 to 65535 */
+TCP_Server_Result tcp_server_init(TCP_Server *server, int port, TCP_Server_Callback_On_Recieved_Bytes_From_Client on_received_bytes_from_client) {
 
-	server->port = 8080; // TODO: SS - Make this customizable.
+	/* port more customizable , port passed as int now stored as int- and string-port in struct*/
+	server->portInteger = port;
+	char* port_buffer = malloc(6);
+	if(port_buffer == NULL)
+		return TCP_Server_Result_Error;
+	sprintf(port_buffer, "%d", port);
+	server->portString = port_buffer; /* TODO: SS - Make this customizable. */
+	
+	/* moved from tcp_server_start and stored in TCP_Server struct */
+	struct addrinfo* hints = malloc(sizeof(struct addrinfo));
+	if (hints == NULL)
+	{
+		return TCP_Server_Result_Error;
+	}
+	memset(hints, 0, sizeof(struct addrinfo));
+
+	hints->ai_family = AF_UNSPEC;
+	hints->ai_socktype = SOCK_STREAM;
+	hints->ai_flags = AI_PASSIVE;
+
+	server->hints = hints; /* store in server struct */
+
 	server->on_received_bytes_from_client = on_received_bytes_from_client;
 
-    return TCP_Server_Result_OK;
+	/* moved from _start*/
+	int i;
+	for (i = 0; i < TCP_MAX_CLIENTS_PER_SERVER; i++)
+		server->clients[i].socket.file_descriptor = -1;
+	
+	/* reset tracking counters */
+	server->client_count = 0;
+	server->next_unique_id = 0;
+
+	return TCP_Server_Result_OK;
 }
 
 TCP_Server_Result tcp_server_start(TCP_Server *server){
-	// TODO: SS - Move some of the things from here to tcp_server_init(..).
-
-    struct addrinfo hints = {0};
+	/* TODO: SS - Move some of the things from here to tcp_server_init(..). */
+	
     struct addrinfo *res = NULL;
-	hints.ai_family = AF_UNSPEC;
-	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_flags = AI_PASSIVE;
 
-	const char *port_as_string = "8080"; // TEMP: SS - This should not be hardcoded.
-	if (getaddrinfo(NULL, port_as_string, &hints, &res) != 0)
-		return -1;
+	/* const char *port_as_string = "8080"; TEMP: SS - This should not be hardcoded. */
+	if (getaddrinfo(NULL, server->portString, server->hints, &res) != 0)
+		return TCP_Server_Result_Error;
 
 	int fd = -1;
 	struct addrinfo *rp;
@@ -56,34 +83,32 @@ TCP_Server_Result tcp_server_start(TCP_Server *server){
 	}
 
 	freeaddrinfo(res);
+	
 	if (fd < 0)
-		return -1;
+		return TCP_Server_Result_Bind_Failure;
+
 
 	if (listen(fd, TCP_MAX_CLIENTS_PER_SERVER) < 0)
 	{
 		close(fd);
-		return -1;
+		return TCP_Server_Result_Listen_Failure;
 	}
 
     int flags = fcntl(fd, F_GETFL, 0);
 	if (flags < 0)
-		return -1;
+		return TCP_Server_Result_Error;
 
-	/*return fcntl(fd, F_SETFL, flags | O_NONBLOCK);*/
+	/* return fcntl(fd, F_SETFL, flags | O_NONBLOCK); */
 	int fcntl_result = fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 	if (fcntl_result == -1)
 	{
 		printf("errno: %d\n", errno);
-		return -1;
+		return TCP_Server_Result_Error;
 	}
 
 	server->socket.file_descriptor = (uint32_t)fd;
 
-	int i;
-	for (i = 0; i < TCP_MAX_CLIENTS_PER_SERVER; i++)
-		server->clients[i].socket.file_descriptor = -1;
-
-	printf("Server lyssnar på port %u\n", server->port);
+	printf("Server lyssnar på port %s\n", server->portString);
 
     return TCP_Server_Result_OK;
 }
@@ -109,7 +134,7 @@ TCP_Server_Result tcp_server_accept(TCP_Server *server){
 
 	/* Find free socket */
 	uint32_t i;
-	for (i = 0; i < server->client_count; i++) {
+	for (i = 0; i < TCP_MAX_CLIENTS_PER_SERVER; i++) {
 		TCP_Server_Client *client = &server->clients[i];
 
 		client->unique_id = i;
@@ -122,7 +147,7 @@ TCP_Server_Result tcp_server_accept(TCP_Server *server){
 	close(cfd);
 	printf("Max klienter, anslutning avvisad\n");
 
-    return TCP_Server_Result_OK;
+    return TCP_Server_Result_Listen_Failure;
 }
 
 TCP_Server_Result tcp_server_read(TCP_Server *server)
@@ -163,6 +188,9 @@ TCP_Server_Result tcp_server_dispose(TCP_Server *server){
 	}
 
 	close(server->socket.file_descriptor);
-	
+	freeaddrinfo(server->hints);
+	free(server->hints);
+	free(server->portString);
+
     return TCP_Server_Result_OK;
 }
