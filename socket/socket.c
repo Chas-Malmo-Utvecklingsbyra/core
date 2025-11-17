@@ -55,36 +55,33 @@ Socket_Result socket_close(Socket *socket){
     return Socket_Result_OK;
 }
 
-/* Tries to read (at most) 'buffer_size' bytes from the socket's 'file_descriptor' adds them to 'buffer'. */
+/* Tries to read (at most) 'buffer_size' bytes from the socket's 'file_descriptor' adds them to 'buffer'. remove the timeout, zero friction implementation please!*/
 Socket_Result socket_read(Socket *socket, uint8_t *buffer, const uint32_t buffer_size, int* out_TotalBytesRead) {
 	int totalBytesRead = 0;
-    uint64_t now = SystemMonotonicMS();
-    uint64_t timeout = now + 5000; /* 5 seconds timeout */
-    while(now < timeout) {
-        now = SystemMonotonicMS();
 
-        int bytesRead = recv(
-            socket->file_descriptor,
-            &buffer[totalBytesRead],
-            buffer_size - totalBytesRead,
-            MSG_DONTWAIT
-        );
+    int bytesRead = recv(
+        socket->file_descriptor,
+        &buffer[totalBytesRead],
+        buffer_size - totalBytesRead,
+        MSG_DONTWAIT
+    );
 
-        if (bytesRead > 0) {
-            totalBytesRead += bytesRead;
-        }
-        
-        /* printf("bytesRead: %d\nTotalBytesRead: %d \n", bytesRead, totalBytesRead); */
-        
-        assert(totalBytesRead >= 0);
-        if((uint32_t)totalBytesRead == buffer_size) {
-            break;
-        }
+    if(bytesRead <= 0) {
+        return Socket_Result_Nothing_read;
     }
 
-    /* printf("Server: %s\n", buffer); */
-    *out_TotalBytesRead = totalBytesRead;
+    /* printf("bytesRead: %d\nTotalBytesRead: %d \n", bytesRead, totalBytesRead); */
+    /* 
+    assert(totalBytesRead >= 0);
+    if((uint32_t)totalBytesRead == buffer_size) {
+        break;
+        }
+        
+        printf("Server: %s\n", buffer);
+        *out_TotalBytesRead = totalBytesRead;
+        */
 
+    *(out_TotalBytesRead) = bytesRead;
     return Socket_Result_OK;
 }
 

@@ -230,15 +230,18 @@ TCP_Server_Result tcp_server_read(TCP_Server *server)
 		TCP_Server_Client *client = &server->clients[i];
 		
 		int totalBytesRead = 0;
+		/* TODO: Fix buffer read from position of already existing read data */
 		Socket_Result read_result = socket_read(&client->socket, &client->receive_buffer[0], TCP_MAX_CLIENT_BUFFER_SIZE, &totalBytesRead);
 
 		if (read_result != Socket_Result_OK)
 		{
-			printf("%s, read_result != ok\n", __FILE__);
+			/* printf("%s, read_result != ok\n", __FILE__); */
 			continue;
 		}
+		printf("After read_result if check.\n");
 		if(totalBytesRead > 0)
 		{
+			printf("hello from inside totalbytesread if check.\n");
 			server->on_received_bytes_from_client(server, client, &client->receive_buffer[0], totalBytesRead);
 		}
 	}
