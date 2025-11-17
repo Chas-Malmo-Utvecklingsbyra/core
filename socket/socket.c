@@ -51,7 +51,7 @@ Socket_Result socket_open(const uint32_t port, Socket *out_socket) {
 /* Tries to close the socket. */
 Socket_Result socket_close(Socket *socket){
     close(socket->file_descriptor);
-    free(socket);
+    /* free(socket); */
     return Socket_Result_OK;
 }
 
@@ -90,6 +90,9 @@ Socket_Result socket_write(Socket *socket, const uint8_t *buffer, const uint32_t
 verifiera att buffer size är större än 0
 verifiera att socket inte ät NULL
 */
+    if (bytesSent == 0){
+        return socket_result_connection_closed;
+    }
 
     return Socket_Result_Fail_Write_Timeout; /* TODO: Replace with better enum */
 }

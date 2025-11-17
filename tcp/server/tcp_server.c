@@ -17,11 +17,14 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include "../../utils/min.h" /* TODO: Fix path in makefile */
+#include "../../utils/clock_monotonic.h"
 
 /* private functions */
 TCP_Server_Result tcp_server_accept(TCP_Server *server);
 TCP_Server_Result tcp_server_read(TCP_Server *server);
 TCP_Server_Result tcp_server_send(TCP_Server *server);
+TCP_Server_Result tcp_server_close_connection(TCP_Server *server);
+TCP_Server_Result tcp_server_client_timeout(TCP_Server *server);
 
 
 /*  initiate server 
@@ -55,7 +58,7 @@ TCP_Server_Result tcp_server_init(TCP_Server *server, int port, TCP_Server_Callb
 	/* moved from _start*/
 	int i;
 	for (i = 0; i < TCP_MAX_CLIENTS_PER_SERVER; i++)
-		server->clients[i].socket.file_descriptor = -1;
+		server->clients[i].in_use = false;
 	
 	/* reset tracking counters */
 	server->client_count = 0;
@@ -124,7 +127,7 @@ TCP_Server_Result tcp_server_start(TCP_Server *server){
 TCP_Server_Result tcp_server_work(TCP_Server *server){
 
 	TCP_Server_Result server_accept_result = tcp_server_accept(server);
-	if (server_accept_result != TCP_Server_Result_OK)
+	if (server_accept_result != TCP_Server_Result_OK && server_accept_result != TCP_Server_Result_Server_Full)
 	{
 		return server_accept_result;
 	}
@@ -141,14 +144,30 @@ TCP_Server_Result tcp_server_work(TCP_Server *server){
 		/* printf("Failed to read TCP server. Result: %i.\n", server_read_result); // TODO: SS - tcp_server_get_result_as_string(start_server_result) */
 		return server_send_result;
 	}
+
+	TCP_Server_Result server_timeout_result = tcp_server_client_timeout(server);
+	if (server_timeout_result != TCP_Server_Result_OK)
+	{
+		/* printf("Failed to read TCP server. Result: %i.\n", server_read_result); // TODO: SS - tcp_server_get_result_as_string(start_server_result) */
+		return server_timeout_result;
+	}
+
+	TCP_Server_Result server_clean_result = tcp_server_close_connection(server);
+	if (server_clean_result != TCP_Server_Result_OK)
+	{
+		/* printf("Failed to read TCP server. Result: %i.\n", server_read_result); // TODO: SS - tcp_server_get_result_as_string(start_server_result) */
+		return server_clean_result;
+	}
+
 	return TCP_Server_Result_OK;
 }
 
 TCP_Server_Result tcp_server_send(TCP_Server *server){
-
+	/* printf("Hello from SEND\n"); */
 	size_t i;
 	for (i = 0; i < server->client_count; i++)
 	{
+		/* printf("%li\n", i); */
 		TCP_Server_Client *client = &server->clients[i];
 		if(client->outgoing_buffer_amount_of_bytes == 0)
 		{
@@ -159,9 +178,9 @@ TCP_Server_Result tcp_server_send(TCP_Server *server){
 
 		Socket_Result write_result = socket_write(&client->socket, client->outgoing_buffer, client->outgoing_buffer_amount_of_bytes, &totalBytesSent);
 		
-		if (write_result != Socket_Result_OK)
+		if (write_result == socket_result_connection_closed)
 		{
-			printf("%s, read_result != ok\n", __FILE__);
+			printf("%s, Socket closed FD: %i\n", __FILE__, client->socket.file_descriptor);
 			continue;
 		}
 		
@@ -186,7 +205,7 @@ TCP_Server_Result tcp_server_send(TCP_Server *server){
 }
 
 TCP_Server_Result tcp_server_accept(TCP_Server *server){
-    
+    /* printf("Hello from ACCEPT\n"); */
     int cfd = accept(server->socket.file_descriptor, NULL, NULL);
 	if (cfd < 0)
 	{
@@ -202,28 +221,33 @@ TCP_Server_Result tcp_server_accept(TCP_Server *server){
 	if (flags < 0)
 		return -1;
 	fcntl(cfd, F_SETFL, flags | O_NONBLOCK);
-	server->client_count++;
-
+	
 	/* Find free socket */
 	uint32_t i;
 	for (i = 0; i < TCP_MAX_CLIENTS_PER_SERVER; i++) {
+		
 		TCP_Server_Client *client = &server->clients[i];
-
-		client->unique_id = i;
-		client->socket.file_descriptor = cfd;
-		printf("Ny klient accepterad (index %d)\n", client->unique_id);
-		return TCP_Server_Result_OK;
+		if(client->in_use == false){
+			/* client->unique_id = i; */
+			server->client_count++;
+			client->in_use = true;
+			client->socket.file_descriptor = cfd;
+			client->timestamp = SystemMonotonicMS();
+			printf("Ny klient accepterad (FD: %d, index: %i/%i)\n", client->socket.file_descriptor, i+1, TCP_MAX_CLIENTS_PER_SERVER);
+			return TCP_Server_Result_OK;
+		}
 	}
 
 	/* FULL */
 	close(cfd);
 	printf("Max klienter, anslutning avvisad\n");
 
-    return TCP_Server_Result_Listen_Failure;
+    return TCP_Server_Result_Server_Full;
 }
 
 TCP_Server_Result tcp_server_read(TCP_Server *server)
 {
+	/* printf("Hello from READ\n"); */
 	size_t i;
 	for (i = 0; i < server->client_count; i++)
 	{
@@ -293,4 +317,40 @@ TCP_Server_Result tcp_server_dispose(TCP_Server *server){
 	free(server->portString);
 
     return TCP_Server_Result_OK;
+}
+
+TCP_Server_Result tcp_server_client_timeout(TCP_Server *server){
+	
+	uint32_t i;
+	for(i = 0; i < server->client_count; i++){
+		if(server->clients[i].timestamp + 15000 < SystemMonotonicMS()){
+			server->clients[i].close_connection = true;
+			printf("updated CLOSE status on client: %i\n", i);
+		}
+
+
+	}
+	return TCP_Server_Result_OK;
+}
+
+
+TCP_Server_Result tcp_server_close_connection(TCP_Server *server){
+	
+	uint32_t start_count = server->client_count;
+	uint32_t i;
+	for(i = 0; i < start_count; i++){
+		if(server->clients[i].close_connection == true){
+			/* client instance that should be closed is replaced with the last client instance*/
+			socket_close(&server->clients[i].socket);
+			server->clients[i] = server->clients[server->client_count-1];
+			/* todo: fix this */
+			
+			memset(&server->clients[server->client_count-1], 0, sizeof(TCP_Server_Client));
+			server->client_count--;
+			printf("closed client connection %i\n", i);
+		}
+
+
+	}
+	return TCP_Server_Result_OK;
 }

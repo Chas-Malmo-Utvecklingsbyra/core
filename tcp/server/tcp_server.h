@@ -1,12 +1,13 @@
 #ifndef TCP_SERVER_H
 #define TCP_SERVER_H
 
+#include <stdbool.h>
 #include "../shared/tcp_shared.h" /* TODO: SS - We should not have to go back here. Figure out why. Probably a problem with the Makefile. */
 
 #ifndef TCP_MAX_CLIENTS_PER_SERVER
 /* NOTE: SS - Slightly annoying because this means that all servers have to have max N clients if we'd have multiple servers per program for example. */
 /* It would be nice if we could specify this on a per-server basis. */
-#define TCP_MAX_CLIENTS_PER_SERVER 64
+#define TCP_MAX_CLIENTS_PER_SERVER 1024
 #endif
 
 typedef struct TCP_Server TCP_Server;
@@ -21,9 +22,12 @@ typedef void (*TCP_Server_Callback_On_Recieved_Bytes_From_Client)(TCP_Server *se
 struct TCP_Server_Client {
     uint32_t unique_id;
     Socket socket;
+    bool in_use;
     uint8_t receive_buffer[TCP_MAX_CLIENT_BUFFER_SIZE];
     uint8_t outgoing_buffer[TCP_MAX_CLIENT_BUFFER_SIZE];
     uint32_t outgoing_buffer_amount_of_bytes;
+    bool close_connection;
+    uint64_t timestamp;
     /* NOTE: SS - We could have two buffers here; one for input and one for output. 'receive_buffer'. */
 };
 
@@ -48,7 +52,8 @@ typedef enum {
     TCP_Server_Result_Socket_Failure,
     TCP_Server_Result_Bind_Failure,
     TCP_Server_Result_Listen_Failure,
-    TCP_Server_Result_Not_Enough_Space
+    TCP_Server_Result_Not_Enough_Space,
+    TCP_Server_Result_Server_Full
 
     /* ... */
 } TCP_Server_Result;
