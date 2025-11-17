@@ -12,8 +12,7 @@
  * - Functions return 0 on success and -1 on failure (e.g. out-of-memory or invalid args).
  */
 
-#define LL_SUCCESS 0
-#define LL_FAILURE -1
+
 
 /* Internal helper: allocate a new node and initialize it.
  * Returns pointer to node on success, NULL on allocation failure.
