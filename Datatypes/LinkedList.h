@@ -1,6 +1,9 @@
 #ifndef Linked_List_H
 #define Linked_List_H
 
+#define LL_SUCCESS 0
+#define LL_FAILURE -1
+
 typedef struct Linked_List Linked_List;
 
 typedef struct Linked_List_Node Linked_List_Node;
