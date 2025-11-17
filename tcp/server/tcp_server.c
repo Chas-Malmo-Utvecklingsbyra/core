@@ -238,10 +238,8 @@ TCP_Server_Result tcp_server_read(TCP_Server *server)
 			/* printf("%s, read_result != ok\n", __FILE__); */
 			continue;
 		}
-		printf("After read_result if check.\n");
 		if(totalBytesRead > 0)
 		{
-			printf("hello from inside totalbytesread if check.\n");
 			server->on_received_bytes_from_client(server, client, &client->receive_buffer[0], totalBytesRead);
 		}
 	}

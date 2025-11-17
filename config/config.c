@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include <cjson/cJSON.h>
+#include "../json/cJSON/cJSON.h"
 #include "../string/strdup.h"
 
 /* ---- Local helper functions begin ---- */

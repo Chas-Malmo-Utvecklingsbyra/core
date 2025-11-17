@@ -70,17 +70,6 @@ Socket_Result socket_read(Socket *socket, uint8_t *buffer, const uint32_t buffer
         return Socket_Result_Nothing_read;
     }
 
-    /* printf("bytesRead: %d\nTotalBytesRead: %d \n", bytesRead, totalBytesRead); */
-    /* 
-    assert(totalBytesRead >= 0);
-    if((uint32_t)totalBytesRead == buffer_size) {
-        break;
-        }
-        
-        printf("Server: %s\n", buffer);
-        *out_TotalBytesRead = totalBytesRead;
-        */
-
     *(out_TotalBytesRead) = bytesRead;
     return Socket_Result_OK;
 }
