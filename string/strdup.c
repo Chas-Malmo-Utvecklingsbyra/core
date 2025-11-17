@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-char* strdup(char* str_to_dupe)
+char* strdup(const char* str_to_dupe)
 {
     if (str_to_dupe == NULL)
         return NULL;
