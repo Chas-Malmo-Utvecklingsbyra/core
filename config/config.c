@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <cjson/cJSON.h>
+#include "../string/strdup.h"
 
 /* ---- Local helper functions begin ---- */
 
@@ -18,6 +19,8 @@
  * @note The caller is responsible for freeing the returned string.
  *       Should be replaced with standard strdup if available or moved to a utility file.
  */
+
+/* --- IGNORE ---
 static char* config_strdup(const char* str)
 {
     if(!str) return NULL;
@@ -26,6 +29,7 @@ static char* config_strdup(const char* str)
 	strcpy(copy, str);
 	return copy;
 }
+*/
 
 /**
  * @brief Validates a JSON configuration field based on its name and expected type/constraints.
@@ -148,7 +152,7 @@ Config_Result config_load(Config_t *cfg)
         config_dispose(cfg);
         return Config_Result_Validation_Error;
     }
-    char* temp_server_host = config_strdup(item->valuestring);
+    char* temp_server_host = strdup(item->valuestring);
     if (!temp_server_host)
     {
         cJSON_Delete(root);
@@ -194,7 +198,7 @@ Config_Result config_load(Config_t *cfg)
         config_dispose(cfg);
         return Config_Result_Validation_Error;
     }
-    char* temp_postgresql_host = config_strdup(item->valuestring);
+    char* temp_postgresql_host = strdup(item->valuestring);
     if (!temp_postgresql_host)
     {
         cJSON_Delete(root);
@@ -210,7 +214,7 @@ Config_Result config_load(Config_t *cfg)
         config_dispose(cfg);
         return Config_Result_Validation_Error;
     }
-    char* temp_postgresql_api_key = config_strdup(item->valuestring);
+    char* temp_postgresql_api_key = strdup(item->valuestring);
     if (!temp_postgresql_api_key)
     {
         cJSON_Delete(root);
