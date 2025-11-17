@@ -4,6 +4,7 @@
 
 #include "tcp_server.h"
 
+#include <assert.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -15,6 +16,13 @@
 #include <arpa/inet.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include "../../utils/min.h" /* TODO: Fix path in makefile */
+
+/* private functions */
+TCP_Server_Result tcp_server_accept(TCP_Server *server);
+TCP_Server_Result tcp_server_read(TCP_Server *server);
+TCP_Server_Result tcp_server_send(TCP_Server *server);
+
 
 /*  initiate server 
 	provide port in range of 0 to 65535 */
@@ -113,6 +121,70 @@ TCP_Server_Result tcp_server_start(TCP_Server *server){
     return TCP_Server_Result_OK;
 }
 
+TCP_Server_Result tcp_server_work(TCP_Server *server){
+
+	TCP_Server_Result server_accept_result = tcp_server_accept(server);
+	if (server_accept_result != TCP_Server_Result_OK)
+	{
+		return server_accept_result;
+	}
+
+	TCP_Server_Result server_read_result = tcp_server_read(server);
+	if (server_read_result != TCP_Server_Result_OK)
+	{
+		/* printf("Failed to read TCP server. Result: %i.\n", server_read_result); // TODO: SS - tcp_server_get_result_as_string(start_server_result) */
+		return server_read_result;
+	}
+	TCP_Server_Result server_send_result = tcp_server_send(server);
+	if (server_send_result != TCP_Server_Result_OK)
+	{
+		/* printf("Failed to read TCP server. Result: %i.\n", server_read_result); // TODO: SS - tcp_server_get_result_as_string(start_server_result) */
+		return server_send_result;
+	}
+	return TCP_Server_Result_OK;
+}
+
+TCP_Server_Result tcp_server_send(TCP_Server *server){
+
+	size_t i;
+	for (i = 0; i < server->client_count; i++)
+	{
+		TCP_Server_Client *client = &server->clients[i];
+		if(client->outgoing_buffer_amount_of_bytes == 0)
+		{
+			continue;
+		}
+
+		uint32_t totalBytesSent = 0;
+
+		Socket_Result write_result = socket_write(&client->socket, client->outgoing_buffer, client->outgoing_buffer_amount_of_bytes, &totalBytesSent);
+		
+		if (write_result != Socket_Result_OK)
+		{
+			printf("%s, read_result != ok\n", __FILE__);
+			continue;
+		}
+		
+		assert(totalBytesSent <= client->outgoing_buffer_amount_of_bytes);
+		
+		printf("total bytes send: %u\n", totalBytesSent);
+		/* TODO: 1 2 3 4 5 6 7 8 */
+		uint32_t y;
+		for ( y = 0; y < client->outgoing_buffer_amount_of_bytes - totalBytesSent; y++)
+		{
+			client->outgoing_buffer[y] = client->outgoing_buffer[totalBytesSent+y];
+		}
+		client->outgoing_buffer[totalBytesSent+1] = '\0';
+
+		client->outgoing_buffer_amount_of_bytes -= totalBytesSent;
+		printf("Buffer amount of bytes: %u\n", client->outgoing_buffer_amount_of_bytes);
+			/* server->on_received_bytes_from_client(server, client, &client->receive_buffer[0], totalBytesRead); */
+	}
+
+	return TCP_Server_Result_OK;
+
+}
+
 TCP_Server_Result tcp_server_accept(TCP_Server *server){
     
     int cfd = accept(server->socket.file_descriptor, NULL, NULL);
@@ -153,11 +225,11 @@ TCP_Server_Result tcp_server_accept(TCP_Server *server){
 TCP_Server_Result tcp_server_read(TCP_Server *server)
 {
 	size_t i;
-	int totalBytesRead = 0;
 	for (i = 0; i < server->client_count; i++)
 	{
 		TCP_Server_Client *client = &server->clients[i];
-
+		
+		int totalBytesRead = 0;
 		Socket_Result read_result = socket_read(&client->socket, &client->receive_buffer[0], TCP_MAX_CLIENT_BUFFER_SIZE, &totalBytesRead);
 
 		if (read_result != Socket_Result_OK)
@@ -165,9 +237,36 @@ TCP_Server_Result tcp_server_read(TCP_Server *server)
 			printf("%s, read_result != ok\n", __FILE__);
 			continue;
 		}
-
-		server->on_received_bytes_from_client(server, client, &client->receive_buffer[0], TCP_MAX_CLIENT_BUFFER_SIZE);
+		if(totalBytesRead > 0)
+		{
+			server->on_received_bytes_from_client(server, client, &client->receive_buffer[0], totalBytesRead);
+		}
 	}
+
+	return TCP_Server_Result_OK;
+}
+
+TCP_Server_Result tcp_server_send_to_client(TCP_Server *server, TCP_Server_Client *client, const uint8_t *buffer, const uint32_t buffer_size){
+	
+	(void)server;
+
+	uint32_t outgoing_capacity_remaining = sizeof(client->outgoing_buffer) - client->outgoing_buffer_amount_of_bytes; 
+	/* client->outgoing_buffer */
+
+
+	if (outgoing_capacity_remaining < buffer_size){
+		return TCP_Server_Result_Not_Enough_Space;
+	}
+
+	uint32_t amount_of_bytes_to_send = min_uint32(buffer_size, outgoing_capacity_remaining);
+
+	memcpy(&client->outgoing_buffer[client->outgoing_buffer_amount_of_bytes], buffer, amount_of_bytes_to_send);
+	
+	client->outgoing_buffer_amount_of_bytes += amount_of_bytes_to_send;
+	
+	
+	/* socket_write(&client->socket, buffer, buffer_size, &bytes_sent); */
+
 
 	return TCP_Server_Result_OK;
 }

@@ -11,7 +11,5 @@ typedef unsigned int uint32_t;
 bool console_read_input(char *buffer, uint32_t buffer_length); 
 
 
-/* Rensar stdin-bufferten */
-void console_flush_input(void);
-
 #endif
+
