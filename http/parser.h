@@ -26,7 +26,7 @@ typedef struct
 } Http_Request;
 
 
-Http_Request* Http_Parser_Parse(char* buffer);
+Http_Request* Http_Parser_Parse(const char* buffer);
 void Http_Parser_Cleanup(Http_Request* request);
 
 #endif

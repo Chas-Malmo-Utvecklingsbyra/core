@@ -84,7 +84,7 @@ void Http_Request_Print_All(Http_Request* request)
     }
 }
 
-Http_Request* Http_Parser_Parse(char* buffer)
+Http_Request* Http_Parser_Parse(const char* buffer)
 {
     if (buffer == NULL) 
         return NULL;
@@ -96,10 +96,13 @@ Http_Request* Http_Parser_Parse(char* buffer)
 
     memset(new_request, 0, sizeof(Http_Request));
 
+    
     char line[1024];
     char key[256];
     char value[1024];
-    char* ptr = buffer;
+
+    char* copy = strdup(buffer);
+    char* ptr = copy;
 
     bool first_line = true;
     bool found_json = false;
@@ -168,6 +171,6 @@ Http_Request* Http_Parser_Parse(char* buffer)
             }
         }
     }
-
+    free(copy);
     return new_request;
 }
