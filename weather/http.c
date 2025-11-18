@@ -42,7 +42,7 @@ Http_Error http_initialize(Http* h)
         return HTTP_ERROR_FAILED_TO_INITIALIZE;
     }
 
-    return 0;
+    return HTTP_SUCCESSFUL;
 }
 
 Http_Error http_get(Http* h, const char* url, Http_Response* response, struct curl_slist* headers)
