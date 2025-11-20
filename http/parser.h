@@ -28,5 +28,6 @@ typedef struct
 
 Http_Request* Http_Parser_Parse(const char* buffer);
 void Http_Parser_Cleanup(Http_Request* request);
+char* Http_Request_Get_Value_From_Key(Http_Request* request, const char* key);
 
 #endif

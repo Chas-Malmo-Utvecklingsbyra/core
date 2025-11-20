@@ -4,9 +4,13 @@
 #include <string.h>
 #include "../string/strdup.h"
 
+/*
+
 #ifndef HTTP_PARSER_DEBUG
     #define HTTP_PARSER_DEBUG
 #endif
+
+*/
 
 void Http_Parser_Cleanup(Http_Request* request)
 {
@@ -38,6 +42,9 @@ char* Http_Request_Get_Value_From_Key(Http_Request* request, const char* key)
 {
     for (int i = request->filled_to-1; i > 0; i--)
     {
+        if (request->request_lines[i].key == NULL)
+            continue;
+
         if (strcmp(request->request_lines[i].key, key) == 0)
         {
             return request->request_lines[i].value;
@@ -49,12 +56,25 @@ char* Http_Request_Get_Value_From_Key(Http_Request* request, const char* key)
 
 void Http_Request_Line_Add(Http_Request* request, Http_Request_Line line)
 {
+    if (request == NULL)
+    {
+        printf("This is null!\n");
+        return;
+    }
+
     if (request->request_lines == NULL)
     {
         request->size = 4;
         request->filled_to = 1;
         request->request_lines = (Http_Request_Line*)malloc(sizeof(Http_Request_Line)*4);
+
         request->request_lines[0] = line;
+
+        if (request->request_lines == NULL)
+        {
+            printf("MALLOC FAILED AT %s\n", __FILE__);
+            return;
+        }
     }
     else
     {
@@ -63,6 +83,13 @@ void Http_Request_Line_Add(Http_Request* request, Http_Request_Line line)
         {
             request->size += 4;
             request->request_lines = (Http_Request_Line*)realloc(request->request_lines, sizeof(Http_Request_Line)*request->size);
+
+            if (request->request_lines == NULL)
+            {
+                printf("REALLOC FAILED AT %s\n", __FILE__);
+                return;
+            }
+
         }
 
         request->filled_to++;
@@ -86,91 +113,99 @@ void Http_Request_Print_All(Http_Request* request)
 
 Http_Request* Http_Parser_Parse(const char* buffer)
 {
-    if (buffer == NULL) 
+    printf("Buffer to parse: %s\n", buffer);
+
+    if (buffer == NULL)
         return NULL;
 
-    Http_Request* new_request = (Http_Request*)malloc(sizeof(Http_Request));
+    Http_Request* request = (Http_Request*)malloc(sizeof(Http_Request));
+    memset(request, 0, sizeof(Http_Request));
 
-    if (new_request == NULL)
+    if (request == NULL)
         return NULL;
 
-    memset(new_request, 0, sizeof(Http_Request));
+    char* duped = strdup(buffer);
+    char* line = duped;
+    bool is_first_line = true;
+    bool has_found_body = false;
 
-    
-    char line[1024];
-    char key[256];
-    char value[1024];
-
-    char* copy = strdup(buffer);
-    char* ptr = copy;
-
-    bool first_line = true;
-    bool found_json = false;
-    char* data_buffer = NULL;
-
-    while (*ptr)
+    while (line != NULL)
     {
-        char* line_end = strchr(ptr, '\n');
-        if (line_end)
+        char* line_start = line;
+
+        char* end = strstr(line, "\r\n");
+        if (!end)
         {
-            size_t len = line_end - ptr;
-            if (len >= sizeof(line)) len = sizeof(line) - 1;
-            strncpy(line, ptr, len);
-            line[len] = '\0';
-            ptr = line_end + 1;
-        }
-        else
-        {
-            strncpy(line, ptr, sizeof(line) - 1);
-            line[sizeof(line) - 1] = '\0';
-            ptr += strlen(ptr);
+            break;
         }
 
-        /* trim /r */
-        size_t line_len = strlen(line);
-        if (line_len > 0 && line[line_len - 1] == '\r')
-            line[line_len - 1] = '\0';
+        *end = '\0';
+        line = end + 2;
 
-        if (first_line)
+
+        /* Adds to the Http_Request_Line list */
+        if (strlen(line_start) > 0 && !is_first_line)
         {
-            first_line = false;
-            int sscanf_return = sscanf(line, "%s %s %s",
-                                       new_request->start_line.method,
-                                       new_request->start_line.path,
-                                       new_request->start_line.http);
-            if (sscanf_return != 3)
-                return NULL;
 
-            continue;
+
+            Http_Request_Line request_line = {0};
+
+            size_t line_size = strlen(line_start);
+
+            request_line.key = (char*)malloc(line_size);
+            request_line.value = (char*)malloc(line_size);
+
+            memset(request_line.key, 0, line_size);
+            memset(request_line.value, 0, line_size);
+
+            sscanf(line_start, "%[^:]: %[^\r\n]", request_line.key, request_line.value);
+            printf("[%s][%s]\n", request_line.key, request_line.value);
+            Http_Request_Line_Add(request, request_line);
+
+
+#ifdef HTTP_PARSER_DEBUG
+            printf("Key, Value: [%s][%s]\n", request_line.key, request_line.value);
+#endif
         }
 
-        memset(key, 0, sizeof(key));
-        memset(value, 0, sizeof(value));
-        sscanf(line, "%[^:]: %[^\r\n]", key, value);
-
-        if (strlen(key) > 0)
+        if (is_first_line)
         {
-            Http_Request_Line http_line = {0};
-            http_line.key = strdup(key);
-            http_line.value = strdup(value);
-            Http_Request_Line_Add(new_request, http_line);
-
-            if (strcmp(key, "Content-Length") == 0 && !found_json && strcmp(new_request->start_line.method, "POST") == 0)
-            {
-                int content_length_num = atoi(value);
-                if (content_length_num <= 0)
-                    return NULL;
-
-                data_buffer = (char*)malloc(content_length_num+1);
-                memset(data_buffer, 0, content_length_num+1);
-
-                strncpy(data_buffer, ptr+2, content_length_num);
-
-                new_request->data = data_buffer;
-                found_json = true;
-            }
+            sscanf(line_start, "%s %s %s", request->start_line.method, request->start_line.path, request->start_line.http);
+            is_first_line = false;
         }
+
+        if (line_start[0] == '\0') {
+            has_found_body = true;
+            break;
+        }
+        is_first_line = false;
     }
-    free(copy);
-    return new_request;
+
+    if (has_found_body && strcmp(request->start_line.method, "POST") == 0)
+    {
+        char* header_value = Http_Request_Get_Value_From_Key(request, "Content-Length");
+
+        /* Could not find Content-Length thus making data not possible to get without risking security as of right now */
+        if (header_value == NULL)
+            return NULL;
+
+        char* pend;
+        long int header_value_as_int = strtol(header_value, &pend, 10);
+
+        /* Converting the number was not possible */
+        if (header_value_as_int == 0L)
+        {
+            return NULL;
+        }
+
+        request->data = malloc(header_value_as_int+1);
+        request->data[header_value_as_int] = '\0';
+        strncpy(request->data, line, header_value_as_int);
+    }
+
+#ifdef HTTP_PARSER_DEBUG
+    printf("Body: [%s]\n", request->data);
+#endif
+
+    return request;
 }
