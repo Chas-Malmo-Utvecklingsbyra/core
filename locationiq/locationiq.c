@@ -105,9 +105,10 @@ int locationiq_get_coordinates(Coordinates* coords, const char* location)
         printf("\nEnter a number to select a location from the list above: ");
         scanf("%d", &user_selection);
 
-        if (user_selection > 1 && user_selection < array_length)
+        if (user_selection > 0 && user_selection < array_length)
         {
             valid_selection = 1;
+            break;
         }
 
         printf("Invalid selection, please try again.");
