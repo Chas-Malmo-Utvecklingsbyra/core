@@ -2,7 +2,7 @@
 #define TCP_CLIENT_H
 
 #include <stdbool.h>
-#include "../include/weather-app-shared/core/tcp/shared/tcp_shared.h"
+#include "../shared/tcp_shared.h"
 
 #ifndef TCP_CLIENT_RECEIVE_BUFFER_SIZE
     #define TCP_CLIENT_RECEIVE_BUFFER_SIZE 1024

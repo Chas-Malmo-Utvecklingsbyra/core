@@ -14,8 +14,8 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 
-#include "../include/weather-app-shared/core/utils/min.h"
-#include "../include/weather-app-shared/core/utils/clock_monotonic.h"
+#include "../../utils/min.h"
+#include "../../utils/clock_monotonic.h"
 
 /* Private functions */
 
