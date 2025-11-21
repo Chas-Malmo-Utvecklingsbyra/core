@@ -51,6 +51,7 @@ Socket_Result socket_open(const uint32_t port, Socket *out_socket) {
 /* Tries to close the socket. */
 Socket_Result socket_close(Socket *socket){
     close(socket->file_descriptor);
+    socket->file_descriptor = -1;
     /* free(socket); */
     return Socket_Result_OK;
 }
