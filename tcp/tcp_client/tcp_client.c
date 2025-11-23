@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <assert.h>
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
@@ -26,21 +27,38 @@ static TCP_Client_Result tcp_client_send_queued(TCP_Client *client);
 
 TCP_Client_Result tcp_client_init(TCP_Client *client, TCP_Client_Callback_On_Received_Bytes_From_Server on_received){
     
-    if(client == NULL){
-        return TCP_Client_Result_Error;
+    assert(client != NULL);
+    assert(on_received != NULL);
+    
+    if(client->initialized){
+        return TCP_Client_Result_Already_Initialized;
     }
 
     memset(client, 0, sizeof(TCP_Client));
+
+    client->initialized = true;
     client->connected = false;
+    client->working = false;
     client->outgoing_buffer_bytes = 0;
     client->on_received_callback = on_received;
     client->socket.file_descriptor = -1;
-    client->last_activity_timestamp = SystemMonotonicMS();
+    /* client->last_activity_timestamp = SystemMonotonicMS(); */
 
     return TCP_Client_Result_OK;
 }
 
 TCP_Client_Result tcp_client_connect(TCP_Client *client, const char *ip, int port){
+
+    assert(client != NULL);
+    assert(ip != NULL);
+    
+    if(!client->initialized){
+        return TCP_Client_Result_Not_Initialized;
+    }
+
+    if(client->connected){
+        return TCP_Client_Result_Already_Connected;
+    }
     
     struct sockaddr_in addr;
     memset(&addr, 0, sizeof(addr));
@@ -74,12 +92,15 @@ TCP_Client_Result tcp_client_connect(TCP_Client *client, const char *ip, int por
     client->socket.file_descriptor = (uint32_t)fd;
     client->connected = true;
     client->outgoing_buffer_bytes = client->outgoing_buffer_bytes;
-    client->last_activity_timestamp = SystemMonotonicMS();
+    /* client->last_activity_timestamp = SystemMonotonicMS(); */
     
     return TCP_Client_Result_OK;
 }
 
 TCP_Client_Result tcp_client_read(TCP_Client *client){
+    
+    assert(client != NULL);
+    assert(client->initialized);
     
     if(!client->connected){
         return TCP_Client_Result_Disconnected;
@@ -98,7 +119,7 @@ TCP_Client_Result tcp_client_read(TCP_Client *client){
     }
 
     if(totalBytesRead > 0 && client->on_received_callback){
-        client->last_activity_timestamp = SystemMonotonicMS();
+        /* client->last_activity_timestamp = SystemMonotonicMS(); */
         client->on_received_callback(client, client->incoming_buffer, (uint32_t)totalBytesRead);
     }
 
@@ -106,6 +127,9 @@ TCP_Client_Result tcp_client_read(TCP_Client *client){
 }
 
 TCP_Client_Result tcp_client_send_queued(TCP_Client *client){
+
+    assert(client != NULL);
+    assert(client->initialized);
 
     if(client->outgoing_buffer_bytes == 0){
         return TCP_Client_Result_OK;
@@ -120,7 +144,7 @@ TCP_Client_Result tcp_client_send_queued(TCP_Client *client){
     }
 
     if(sent > 0){
-        client->last_activity_timestamp = SystemMonotonicMS();
+        /* client->last_activity_timestamp = SystemMonotonicMS(); */
 
         if(sent < client->outgoing_buffer_bytes){
             uint32_t remaining = client->outgoing_buffer_bytes - sent;
@@ -137,28 +161,60 @@ TCP_Client_Result tcp_client_send_queued(TCP_Client *client){
 
 TCP_Client_Result tcp_client_work(TCP_Client *client){
 
+    assert(client != NULL);
+
+    if(!client->initialized){
+        return TCP_Client_Result_Not_Initialized;
+    }
+
     if(!client->connected){
         return TCP_Client_Result_Disconnected;
     }
 
+    if(client->working){
+        return TCP_Client_Result_Already_Working;
+    }
+
+    client->working = true;
+
     TCP_Client_Result reading = tcp_client_read(client);
     if(reading != TCP_Client_Result_OK){
+        client->working = false;
         return TCP_Client_Result_Error_Reading;
     }
 
     TCP_Client_Result send_queue = tcp_client_send_queued(client);
     if(send_queue != TCP_Client_Result_OK){
+        client->working = false;
         return TCP_Client_Result_Error_Sending_Queued;
     }
 
-    if(client->last_activity_timestamp + 15000 < SystemMonotonicMS()){
+    /* if(client->last_activity_timestamp + 15000 < SystemMonotonicMS()){
+        client->working = false;
         return TCP_Client_Result_Disconnected;
-    }
+    } */
+
+    client->working = false;
 
     return TCP_Client_Result_OK;
 }
 
 TCP_Client_Result tcp_client_send(TCP_Client *client, const uint8_t *buffer, uint32_t size){
+
+    assert(client != NULL);
+    assert(buffer != NULL);
+
+    if(!client->initialized){
+        return TCP_Client_Result_Not_Initialized;
+    }
+
+    if(size == 0){
+        return TCP_Client_Result_Error;
+    }
+
+    if(!client->connected){
+        return TCP_Client_Result_Disconnected;
+    }
 
     uint32_t space_left = TCP_CLIENT_OUTGOING_BUFFER_SIZE - client->outgoing_buffer_bytes;
 
@@ -175,11 +231,18 @@ TCP_Client_Result tcp_client_send(TCP_Client *client, const uint8_t *buffer, uin
 
 TCP_Client_Result tcp_client_disconnect(TCP_Client *client){
 
-    if(client->socket.file_descriptor > 0){
+    assert(client != NULL);
+
+    if(!client->initialized){
+        return TCP_Client_Result_Not_Initialized;
+    }
+
+    if(client->connected && client->socket.file_descriptor > 0){
         socket_close(&client->socket);
     }
 
     client->connected = false;
+    client->outgoing_buffer_bytes = 0;
 
     return TCP_Client_Result_OK;    
 }

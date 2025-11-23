@@ -22,7 +22,13 @@ typedef enum {
     TCP_Client_Result_Error_Sending_Queued,
     TCP_Client_Result_Connection_Failure,
     TCP_Client_Result_Not_Enough_Space,
-    TCP_Client_Result_Disconnected
+    TCP_Client_Result_Disconnected,
+    TCP_Client_Result_Not_Initialized,
+    TCP_Client_Result_Already_Initialized,
+    TCP_Client_Result_Already_Connected,
+    TCP_Client_Result_Already_Working,
+    TCP_Client_Result_Callback_Null
+
 
     /* ... */
 } TCP_Client_Result;
@@ -33,6 +39,8 @@ typedef void(*TCP_Client_Callback_On_Received_Bytes_From_Server)(TCP_Client *cli
  struct TCP_Client {
     Socket socket;
     bool connected;
+    bool initialized;
+    bool working;
     
     uint8_t incoming_buffer[TCP_CLIENT_RECEIVE_BUFFER_SIZE];
     uint8_t outgoing_buffer[TCP_CLIENT_OUTGOING_BUFFER_SIZE];
