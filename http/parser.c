@@ -38,9 +38,9 @@ void Http_Parser_Cleanup(Http_Request* request)
     }
 }
 
-char* Http_Request_Get_Value_From_Key(Http_Request* request, const char* key)
+char* Http_Request_Get_Value_From_Key(const Http_Request* request, const char* key)
 {
-    for (int i = request->filled_to-1; i > 0; i--)
+    for (size_t i = request->filled_to-1; i > 0; i--)
     {
         if (request->request_lines[i].key == NULL)
             continue;
@@ -170,7 +170,24 @@ Http_Request* Http_Parser_Parse(const char* buffer)
 
         if (is_first_line)
         {
-            sscanf(line_start, "%s %s %s", request->start_line.method, request->start_line.path, request->start_line.http);
+            char method[8] = {0};
+            sscanf(line_start, "%7s %399s %8s", method, request->start_line.path, request->start_line.http);
+
+            if (strcmp(method, "POST") == 0)
+            {
+                request->start_line.method = POST;
+            }
+            else if (strcmp(method, "GET") == 0)
+            {
+                request->start_line.method = GET;
+            }
+            else
+            {
+                printf("Unsupported HTTP method\n");
+                return NULL; /*  */
+            }
+
+
             is_first_line = false;
         }
 
@@ -181,7 +198,7 @@ Http_Request* Http_Parser_Parse(const char* buffer)
         is_first_line = false;
     }
 
-    if (has_found_body && strcmp(request->start_line.method, "POST") == 0)
+    if (has_found_body && request->start_line.method == POST)
     {
         char* header_value = Http_Request_Get_Value_From_Key(request, "Content-Length");
 
@@ -208,4 +225,19 @@ Http_Request* Http_Parser_Parse(const char* buffer)
 #endif
 
     return request;
+}
+
+char* Http_Request_Get_Method_String(const Http_Request* request)
+{
+    switch (request->start_line.method)
+    {
+        case POST:
+            return "POST";
+
+        case GET:
+            return "GET";
+
+        default:
+            return "Unsupported Method";
+    }
 }
