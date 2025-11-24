@@ -22,28 +22,45 @@
 
 static TCP_Client_Result tcp_client_read(TCP_Client *client);
 static TCP_Client_Result tcp_client_send_queued(TCP_Client *client);
+static TCP_Client_Result tcp_client_requested_disconnect(TCP_Client *client);
 
 /*-------------------*/
 
-TCP_Client_Result tcp_client_init(TCP_Client *client, TCP_Client_Callback_On_Received_Bytes_From_Server on_received){
+TCP_Client_Result tcp_client_init(TCP_Client *client, 
+                                TCP_Client_Callback_On_Received_Bytes_From_Server on_received, 
+                                TCP_Client_Callback_On_Connect on_connect, 
+                                TCP_Client_Callback_On_Disconnect on_disconnect, 
+                                TCP_Client_Callback_On_Error on_error){
     
     assert(client != NULL);
     assert(on_received != NULL);
+    assert(on_connect != NULL);
+    assert(on_disconnect != NULL);
+    assert(on_error != NULL);
+    /* assert(on_bytes_sent != NULL); */
+    assert(client->server.connection_state == TCP_Client_Connection_State_Disconnected);
     
-    if(client->initialized){
+    /* 
+    if(client->connection_state == TCP_Client_Connection_State_Initialized){
         return TCP_Client_Result_Already_Initialized;
-    }
+    } */
 
-    memset(client, 0, sizeof(TCP_Client));
+    memset(client, 0, sizeof(TCP_Client));   
+        
+    client->server.socket.file_descriptor = -1;
+    client->server.connection_state = TCP_Client_Connection_State_Initialized;
+    client->server.incoming_buffer[0] = 0;
+    client->server.outgoing_buffer[0] = 0;
+    client->server.outgoing_buffer_bytes = 0;
+    client->server.close_requested = false;
 
-    client->initialized = true;
-    client->connected = false;
-    client->working = false;
-    client->outgoing_buffer_bytes = 0;
     client->on_received_callback = on_received;
-    client->socket.file_descriptor = -1;
+    client->on_connect_callback = on_connect;
+    client->on_disconnect_callback = on_disconnect;
+    client->on_error_callback = on_error;
+    /* client->on_bytes_sent_callback = on_bytes_sent; */
     /* client->last_activity_timestamp = SystemMonotonicMS(); */
-
+    
     return TCP_Client_Result_OK;
 }
 
@@ -51,14 +68,11 @@ TCP_Client_Result tcp_client_connect(TCP_Client *client, const char *ip, int por
 
     assert(client != NULL);
     assert(ip != NULL);
+    assert(client->server.connection_state == TCP_Client_Connection_State_Initialized || client->server.connection_state == TCP_Client_Connection_State_Disconnected);
     
-    if(!client->initialized){
-        return TCP_Client_Result_Not_Initialized;
-    }
-
-    if(client->connected){
+    if(client->server.connection_state == TCP_Client_Connection_State_Connected){
         return TCP_Client_Result_Already_Connected;
-    }
+    }    
     
     struct sockaddr_in addr;
     memset(&addr, 0, sizeof(addr));
@@ -67,17 +81,27 @@ TCP_Client_Result tcp_client_connect(TCP_Client *client, const char *ip, int por
     addr.sin_port = htons((uint16_t)port);
 
     if(inet_pton(AF_INET, ip, &addr.sin_addr) <= 0){
-        return TCP_Client_Result_Connection_Failure;
+        if(client->on_error_callback){
+            client->on_error_callback(client, TCP_Client_Result_Error_Invalid_Address);
+        }
+        return TCP_Client_Result_Error_Invalid_Address;
     }
 
     int fd = socket(AF_INET, SOCK_STREAM, 0);
     if(fd < 0){
-        return TCP_Client_Result_Connection_Failure;
+        if(client->on_error_callback){
+            client->on_error_callback(client, TCP_Client_Result_Error_Creating_Socket);
+        }
+        return TCP_Client_Result_Error_Creating_Socket;
     }
 
     int flags = fcntl(fd, F_GETFL, 0);
 	if (flags < 0){
-		return TCP_Client_Result_Connection_Failure;
+        close(fd);
+        if(client->on_error_callback){
+            client->on_error_callback(client, TCP_Client_Result_Error_Fcntl);
+        }
+		return TCP_Client_Result_Error_Fcntl;
     }
 	fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 
@@ -85,13 +109,17 @@ TCP_Client_Result tcp_client_connect(TCP_Client *client, const char *ip, int por
     if(res < 0){ 
         if(errno != EINPROGRESS){
             close(fd);
-            return TCP_Client_Result_Connection_Failure;
+            if(client->on_error_callback){
+                client->on_error_callback(client, TCP_Client_Result_Error_Connection_Failure);
+            }
+            return TCP_Client_Result_Error_Connection_Failure;
         }
     }
 
-    client->socket.file_descriptor = (uint32_t)fd;
-    client->connected = true;
-    client->outgoing_buffer_bytes = client->outgoing_buffer_bytes;
+    client->server.socket.file_descriptor = (uint32_t)fd;
+    client->server.connection_state = TCP_Client_Connection_State_Connected;
+    if(client->on_connect_callback) client->on_connect_callback(client);
+    client->server.outgoing_buffer_bytes = client->server.outgoing_buffer_bytes;
     /* client->last_activity_timestamp = SystemMonotonicMS(); */
     
     return TCP_Client_Result_OK;
@@ -100,17 +128,20 @@ TCP_Client_Result tcp_client_connect(TCP_Client *client, const char *ip, int por
 TCP_Client_Result tcp_client_read(TCP_Client *client){
     
     assert(client != NULL);
-    assert(client->initialized);
-    
-    if(!client->connected){
+     
+    if(client->server.connection_state != TCP_Client_Connection_State_Connected && client->server.connection_state != TCP_Client_Connection_State_Working){
         return TCP_Client_Result_Disconnected;
     }
 
     int totalBytesRead = 0;
 
-    Socket_Result result = socket_read(&client->socket, client->incoming_buffer, TCP_CLIENT_RECEIVE_BUFFER_SIZE, &totalBytesRead);
+    Socket_Result result = socket_read(&client->server.socket, client->server.incoming_buffer, TCP_CLIENT_RECEIVE_BUFFER_SIZE, &totalBytesRead);
 
     if(result == socket_result_connection_closed){
+        client->server.connection_state = TCP_Client_Connection_State_Disconnected;
+        if(client->on_disconnect_callback){
+            client->on_disconnect_callback(client);
+        }
         return TCP_Client_Result_Disconnected;
     }
 
@@ -120,7 +151,7 @@ TCP_Client_Result tcp_client_read(TCP_Client *client){
 
     if(totalBytesRead > 0 && client->on_received_callback){
         /* client->last_activity_timestamp = SystemMonotonicMS(); */
-        client->on_received_callback(client, client->incoming_buffer, (uint32_t)totalBytesRead);
+        client->on_received_callback(client, client->server.incoming_buffer, (uint32_t)totalBytesRead);
     }
 
     return TCP_Client_Result_OK;
@@ -129,29 +160,33 @@ TCP_Client_Result tcp_client_read(TCP_Client *client){
 TCP_Client_Result tcp_client_send_queued(TCP_Client *client){
 
     assert(client != NULL);
-    assert(client->initialized);
+    
+    if(client->server.connection_state != TCP_Client_Connection_State_Connected && client->server.connection_state != TCP_Client_Connection_State_Working){
+        return TCP_Client_Result_Disconnected;
+    }
 
-    if(client->outgoing_buffer_bytes == 0){
+    if(client->server.outgoing_buffer_bytes == 0){
         return TCP_Client_Result_OK;
     }
 
     uint32_t sent = 0;
 
-    Socket_Result write_result = socket_write(&client->socket, client->outgoing_buffer, client->outgoing_buffer_bytes, &sent);
+    Socket_Result write_result = socket_write(&client->server.socket, client->server.outgoing_buffer, client->server.outgoing_buffer_bytes, &sent);
 
     if(write_result == socket_result_connection_closed){
+        client->server.connection_state = TCP_Client_Connection_State_Disconnected;
+        client->on_disconnect_callback(client);
         return TCP_Client_Result_Disconnected;
     }
 
     if(sent > 0){
         /* client->last_activity_timestamp = SystemMonotonicMS(); */
-
-        if(sent < client->outgoing_buffer_bytes){
-            uint32_t remaining = client->outgoing_buffer_bytes - sent;
-            memmove(client->outgoing_buffer, client->outgoing_buffer + sent, remaining);
-            client->outgoing_buffer_bytes = remaining;
+        if(sent < client->server.outgoing_buffer_bytes){
+            uint32_t remaining = client->server.outgoing_buffer_bytes - sent;
+            memmove(client->server.outgoing_buffer, client->server.outgoing_buffer + sent, remaining);
+            client->server.outgoing_buffer_bytes = remaining;
         } else {
-            client->outgoing_buffer_bytes = 0;
+            client->server.outgoing_buffer_bytes = 0;
         }
     }
 
@@ -162,29 +197,32 @@ TCP_Client_Result tcp_client_send_queued(TCP_Client *client){
 TCP_Client_Result tcp_client_work(TCP_Client *client){
 
     assert(client != NULL);
+    assert(client->server.connection_state != TCP_Client_Connection_State_Disconnected);
 
-    if(!client->initialized){
-        return TCP_Client_Result_Not_Initialized;
-    }
-
-    if(!client->connected){
-        return TCP_Client_Result_Disconnected;
+    if(client->server.close_requested){
+        return tcp_client_requested_disconnect(client);
     }
 
     if(client->working){
+        if(client->on_error_callback){
+            client->on_error_callback(client, TCP_Client_Result_Error_Trying_To_Work_Again);
+        }
         return TCP_Client_Result_Already_Working;
     }
 
     client->working = true;
+    client->server.connection_state = TCP_Client_Connection_State_Working;
 
     TCP_Client_Result reading = tcp_client_read(client);
     if(reading != TCP_Client_Result_OK){
+        client->server.connection_state = TCP_Client_Connection_State_Stopped_Working;
         client->working = false;
         return TCP_Client_Result_Error_Reading;
     }
 
     TCP_Client_Result send_queue = tcp_client_send_queued(client);
     if(send_queue != TCP_Client_Result_OK){
+        client->server.connection_state = TCP_Client_Connection_State_Stopped_Working;
         client->working = false;
         return TCP_Client_Result_Error_Sending_Queued;
     }
@@ -194,8 +232,11 @@ TCP_Client_Result tcp_client_work(TCP_Client *client){
         return TCP_Client_Result_Disconnected;
     } */
 
-    client->working = false;
+    if(client->server.connection_state == TCP_Client_Connection_State_Stopped_Working){
+        client->server.connection_state = TCP_Client_Connection_State_Connected;
+    }
 
+    client->working = false;
     return TCP_Client_Result_OK;
 }
 
@@ -204,27 +245,19 @@ TCP_Client_Result tcp_client_send(TCP_Client *client, const uint8_t *buffer, uin
     assert(client != NULL);
     assert(buffer != NULL);
 
-    if(!client->initialized){
-        return TCP_Client_Result_Not_Initialized;
-    }
-
-    if(size == 0){
-        return TCP_Client_Result_Error;
-    }
-
-    if(!client->connected){
+    if(client->server.connection_state != TCP_Client_Connection_State_Connected && client->server.connection_state != TCP_Client_Connection_State_Working){
         return TCP_Client_Result_Disconnected;
     }
-
-    uint32_t space_left = TCP_CLIENT_OUTGOING_BUFFER_SIZE - client->outgoing_buffer_bytes;
+    
+    uint32_t space_left = TCP_CLIENT_OUTGOING_BUFFER_SIZE - client->server.outgoing_buffer_bytes;
 
     if(space_left < size){
         return TCP_Client_Result_Not_Enough_Space;
     }
 
     uint32_t copy = min_uint32(space_left, size);
-    memcpy(&client->outgoing_buffer[client->outgoing_buffer_bytes], buffer, copy);
-    client->outgoing_buffer_bytes += copy;
+    memcpy(&client->server.outgoing_buffer[client->server.outgoing_buffer_bytes], buffer, copy);
+    client->server.outgoing_buffer_bytes += copy;
 
     return TCP_Client_Result_OK;
 }
@@ -233,17 +266,21 @@ TCP_Client_Result tcp_client_disconnect(TCP_Client *client){
 
     assert(client != NULL);
 
-    if(!client->initialized){
-        return TCP_Client_Result_Not_Initialized;
+    if(client->server.socket.file_descriptor > 0){
+        socket_close(&client->server.socket);
     }
 
-    if(client->connected && client->socket.file_descriptor > 0){
-        socket_close(&client->socket);
-    }
-
-    client->connected = false;
-    client->outgoing_buffer_bytes = 0;
+    client->server.connection_state = TCP_Client_Connection_State_Disconnected;
+    client->server.outgoing_buffer_bytes = 0;
+    client->on_disconnect_callback(client);
 
     return TCP_Client_Result_OK;    
+}
+
+TCP_Client_Result tcp_client_requested_disconnect(TCP_Client *client){
+    assert(client != NULL);
+
+    client->server.close_requested = true;
+    return TCP_Client_Result_OK;
 }
 
