@@ -15,18 +15,21 @@
 #define CONFIG_MAX_LENGTH_POSTGRESQL_HOST 255 
 #define CONFIG_MAX_LENGTH_POSTGRESQL_API_KEY 512
 #define CONFIG_MAX_CONNECTIONS_COUNT 10
+#define CONFIG_MAX_LENGTH_ROUTE 1024
+#define CONFIG_MAX_LENGTH_WEBMETHOD 16
 
-/*  
-* settings.json:
-* {
-*   "server_host" : "127.0.0.1",
-*   "server_port" : 8080,
-*   "debug" : true,
-*   "max_connections" : 10,
-*   "postgresql_host" : "localhost",
-*   "postgresql_api_key" : "asdasdd"
-* }
-*/
+/*
+ * settings.json:
+ * {
+ *   "server_host" : "127.0.0.1",
+ *   "server_port" : 8080,
+ *   "debug" : true,
+ *   "max_connections" : 10,
+ *   "postgresql_host" : "localhost",
+ *   "postgresql_api_key" : "asdasdd",
+ *   "locationiq_api_key" : ""
+ * }
+ */
 
 typedef struct Config_t Config_t;
 
@@ -39,6 +42,12 @@ typedef enum Config_Result
     Config_Result_OK = 0
 } Config_Result;
 
+struct Routes_Allowed_Route_t
+{
+    char* route;
+    char* method;
+};
+
 struct Config_t
 {
     char *config_server_host;
@@ -47,6 +56,9 @@ struct Config_t
     size_t config_max_connections;
     char *config_postgresql_host;
     char *config_postgresql_api_key;
+    struct Routes_Allowed_Route_t* allowed_routes;
+    size_t allowed_routes_count;
+    char *locationiq_api_key;
 };
 
 Config_t* config_get_instance(const char* config_file_path);

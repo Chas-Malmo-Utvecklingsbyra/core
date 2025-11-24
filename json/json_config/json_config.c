@@ -18,6 +18,9 @@ Json_Config_Field_Enum get_json_field_name_enum(const char* field_name)
     else if (strcmp(field_name, "max_connections") == 0) return Json_Config_Field_Max_Connections;
     else if (strcmp(field_name, "postgresql_host") == 0) return Json_Config_Field_Postgresql_Host;
     else if (strcmp(field_name, "postgresql_api_key") == 0) return Json_Config_Field_Postgresql_Api_Key;
+    else if (strcmp(field_name, "locationiq_access_token") == 0)
+        return Json_Config_Field_Locationiq_Access_Token;
+    else if (strcmp(field_name, "allowed_routes") == 0) return Json_Config_Field_Allowed_Routes;
     
     return -1;
 }
@@ -73,6 +76,15 @@ bool validate_json_field(Json_Config_Field_Enum field_enum, const cJSON* item)
             if (cJSON_IsString(item) && item->valuestring != NULL && (strlen(item->valuestring) <= CONFIG_MAX_LENGTH_POSTGRESQL_API_KEY)) return true;
             break;
             
+        case Json_Config_Field_Locationiq_Access_Token:
+            printf("Validating LocationIQ Access Token\n");
+            if (cJSON_IsString(item) && item->valuestring != NULL) return true;
+            break;
+        
+        case Json_Config_Field_Allowed_Routes:
+            if (cJSON_IsArray(item) && cJSON_GetArraySize(item) > 0) return true;
+            break;
+            
         default:
             break;
     }
@@ -117,6 +129,7 @@ Config_Result parse_json_to_config(Config_t* cfg, const char* config_file_path)
         
         Json_Config_Field_Enum field_enum = get_json_field_name_enum(field_name);
         
+        printf("Parsing field: %s (enum: %d)\n", field_name, field_enum);
         if(validate_json_field(field_enum, current_element))
         {
             switch (field_enum)
@@ -143,7 +156,42 @@ Config_Result parse_json_to_config(Config_t* cfg, const char* config_file_path)
                 
                 case Json_Config_Field_Postgresql_Api_Key:
                     cfg->config_postgresql_api_key = strdup(current_element->valuestring);
+                    printf("PostgreSQL API Key set to: %s\n", cfg->config_postgresql_api_key);
                     break;
+                    
+                case Json_Config_Field_Locationiq_Access_Token:
+                    cfg->locationiq_api_key = strdup(current_element->valuestring);
+                    printf("LocationIQ API Key set to: %s\n", cfg->locationiq_api_key);
+                    break;
+                
+                case Json_Config_Field_Allowed_Routes:
+                {
+                    size_t routes_count = (size_t)cJSON_GetArraySize(current_element);
+                    cfg->allowed_routes = malloc(sizeof(struct Routes_Allowed_Route_t) * routes_count);
+                    size_t i = 0;
+                    for (i = 0; i < routes_count; i++)
+                    {
+                        cJSON* route_item = cJSON_GetArrayItem(current_element, i);
+                        if (route_item == NULL) continue;
+                        
+                        cJSON* route_field = cJSON_GetObjectItem(route_item, "route");
+                        cJSON* method_field = cJSON_GetObjectItem(route_item, "method");
+                        
+                        if (route_field == NULL || method_field == NULL) continue;
+                        
+                        if (!cJSON_IsString(route_field) || !cJSON_IsString(method_field))
+                        {
+                            current_element = NULL;
+                            cJSON_Delete(root);
+                            return Config_Result_Validation_Error;
+                        }
+
+                        cfg->allowed_routes[i].route = strdup(route_field->valuestring);
+                        cfg->allowed_routes[i].method = strdup(method_field->valuestring);
+                    }
+                    
+                    cfg->allowed_routes_count = routes_count;
+                }
                 
                 default:
                     break;
@@ -151,6 +199,7 @@ Config_Result parse_json_to_config(Config_t* cfg, const char* config_file_path)
         }
         else
         {
+            printf("Validation failed for field: %s\n", field_name);
             current_element = NULL;
             cJSON_Delete(root);
             return Config_Result_Validation_Error;

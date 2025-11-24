@@ -3,6 +3,7 @@
 #include <string.h>
 #include <curl/curl.h>
 #include <stdio.h>
+#include "../string/strdup.h"
 
 static size_t http_response_write_callback(void* contents, size_t size, size_t nmemb, void* userp)
 {
@@ -45,8 +46,13 @@ Http_Error http_initialize(Http* h)
     return HTTP_SUCCESSFUL;
 }
 
-Http_Error http_get(Http* h, const char* url, Http_Response* response, struct curl_slist* headers)
+Http_Error http_get(Http* h, const char* url, char* response, struct curl_slist* headers)
 {
+
+    Http_Response http_response;
+    http_response.data = NULL;
+    http_response.size = 0;
+
     if (h->curl == NULL)
     {
         printf("Curl failed to Initialize");
@@ -55,19 +61,32 @@ Http_Error http_get(Http* h, const char* url, Http_Response* response, struct cu
 
     curl_easy_setopt(h->curl, CURLOPT_URL, url);
     curl_easy_setopt(h->curl, CURLOPT_WRITEFUNCTION, http_response_write_callback);
-    curl_easy_setopt(h->curl, CURLOPT_WRITEDATA, (void*)response);
+    curl_easy_setopt(h->curl, CURLOPT_WRITEDATA, (void *)&http_response);
 
     if (headers)
     {
         curl_easy_setopt(h->curl, CURLOPT_HTTPHEADER, headers);
     }
+    
+    printf("Performing HTTP GET to URL: %s\n", url);
 
+    printf("CURL perform\n");
     CURLcode code = curl_easy_perform(h->curl);
+    
+    printf("CURL perform returned code: %d\n", code);
 
     if (code != CURLE_OK)
     {
         printf("Curl failed to perform\n");
         return HTTP_ERROR_FAILED_TO_PERFORM;
+    }
+
+    printf("HTTP GET request response size: %d\n", http_response.size);
+    if (http_response.data)
+    {
+        printf("HTTP GET request response data: %s\n", http_response.data);
+        response = strdup(http_response.data);
+        printf("Response copied to output parameter:\n %s\n", response);
     }
 
     if (headers)

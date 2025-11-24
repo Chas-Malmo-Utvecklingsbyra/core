@@ -38,6 +38,12 @@ void Http_Parser_Cleanup(Http_Request* request)
     }
 }
 
+/** 
+ * @brief Retrieves the value associated with a given key from the HTTP request headers.
+ * @param request Pointer to the Http_Request structure containing the parsed HTTP request.
+ * @param key The key whose associated value is to be retrieved.
+ * @return Pointer to the value string if the key is found, NULL otherwise.
+ */
 char* Http_Request_Get_Value_From_Key(Http_Request* request, const char* key)
 {
     for (int i = request->filled_to-1; i > 0; i--)

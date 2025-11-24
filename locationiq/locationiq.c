@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <curl/curl.h>
+#include "../config/config.h"
 
 #include "locationiq.h"
 
@@ -28,6 +29,7 @@ size_t write_chunk(void* data, size_t item_size, size_t nmemb, void* user_data)
 char* locationiq_api_call(const char* location)
 {
     char url[256];
+    
     sprintf(url, "https://eu1.locationiq.com/v1/search?key=%s&q=%s&format=json", LOCATIONIQ_ACCESS_TOKEN, location);
 
     CURL* curl = curl_easy_init();
