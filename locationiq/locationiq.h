@@ -1,7 +1,7 @@
 #ifndef LOCATIONIQ_H
 #define LOCATIONIQ_H
 
-#include "cJSON/cJSON.h"
+#include "../json/cJSON/cJSON.h"
 
 /*  This needs to be replaced with a LocationIQ access token.
     Unsure how we want to handle that. */
