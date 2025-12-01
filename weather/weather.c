@@ -11,7 +11,7 @@ Weather_Response weather_get_data(const char* api_url)
     Weather_Response response = {0};
     response.error = true;
 
-    if (http_get(api_url, http_resp_data, NULL) == HTTP_ERROR_FAILED_TO_PERFORM)
+    if (http_get(api_url, &http_resp_data, NULL) == HTTP_ERROR_FAILED_TO_PERFORM)
     {
         printf("Http_Perform failed in weather_get_data\n");
         return response;
