@@ -181,6 +181,10 @@ Http_Request* Http_Parser_Parse(const char* buffer)
             {
                 request->start_line.method = GET;
             }
+            else if (strcmp(method, "OPTIONS") == 0)
+            {
+                request->start_line.method = OPTIONS;
+            }
             else
             {
                 printf("Unsupported HTTP method\n");
@@ -236,6 +240,9 @@ char* Http_Request_Get_Method_String(const Http_Request* request)
 
         case GET:
             return "GET";
+
+        case OPTIONS:
+            return "OPTIONS";
 
         default:
             return "Unsupported Method";

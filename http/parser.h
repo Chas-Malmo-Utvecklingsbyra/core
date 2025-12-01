@@ -12,7 +12,8 @@ typedef struct
 typedef enum
 {
     POST,
-    GET
+    GET,
+    OPTIONS
 }Http_Method;
 
 typedef struct
