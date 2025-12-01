@@ -18,11 +18,14 @@ Json_Config_Field_Enum get_json_field_name_enum(const char* field_name)
     else if (strcmp(field_name, "max_connections") == 0) return Json_Config_Field_Max_Connections;
     else if (strcmp(field_name, "postgresql_host") == 0) return Json_Config_Field_Postgresql_Host;
     else if (strcmp(field_name, "postgresql_api_key") == 0) return Json_Config_Field_Postgresql_Api_Key;
-    else if (strcmp(field_name, "locationiq_access_token") == 0)
-        return Json_Config_Field_Locationiq_Access_Token;
+    else if (strcmp(field_name, "locationiq_access_token") == 0) return Json_Config_Field_Locationiq_Access_Token;
     else if (strcmp(field_name, "allowed_routes") == 0) return Json_Config_Field_Allowed_Routes;
+    else if (strcmp(field_name, "route") == 0) return Json_Config_Field_Allowed_Routes_Route;
+    else if (strcmp(field_name, "method") == 0) return Json_Config_Field_Allowed_Routes_Method;
+    else if (strcmp(field_name, "args_count") == 0) return Json_Config_Field_Allowed_Routes_Args_Count;
+    else if (strcmp(field_name, "args") == 0) return Json_Config_Field_Allowed_Routes_Args;
     
-    return -1;
+    return Json_Config_Field_Invalid;
 }
 
 /**
@@ -44,6 +47,8 @@ Json_Config_Field_Enum get_json_field_name_enum(const char* field_name)
  *       - "max_connections": Number, non-negative
  *       - "postgresql_host": String, max length CONFIG_MAX_LENGTH_POSTGRESQL_HOST
  *       - "postgresql_api_key": String, max length CONFIG_MAX_LENGTH_POSTGRESQL_API_KEY
+ *      - "locationiq_access_token": String
+ *      - "allowed_routes": Array of route objects
  */
 bool validate_json_field(Json_Config_Field_Enum field_enum, const cJSON* item)
 {
@@ -77,7 +82,6 @@ bool validate_json_field(Json_Config_Field_Enum field_enum, const cJSON* item)
             break;
             
         case Json_Config_Field_Locationiq_Access_Token:
-            printf("Validating LocationIQ Access Token\n");
             if (cJSON_IsString(item) && item->valuestring != NULL) return true;
             break;
         
@@ -85,10 +89,111 @@ bool validate_json_field(Json_Config_Field_Enum field_enum, const cJSON* item)
             if (cJSON_IsArray(item) && cJSON_GetArraySize(item) > 0) return true;
             break;
             
+        case Json_Config_Field_Allowed_Routes_Route:
+            if (cJSON_IsString(item) && item->valuestring != NULL && (strlen(item->valuestring) <= CONFIG_MAX_LENGTH_ROUTE)) return true;
+            break;
+            
+        case Json_Config_Field_Allowed_Routes_Method:
+            if (cJSON_IsString(item) && item->valuestring != NULL && (strlen(item->valuestring) <= CONFIG_MAX_LENGTH_WEBMETHOD)) return true;
+            break;
+            
+        case Json_Config_Field_Allowed_Routes_Args_Count:
+            if (cJSON_IsNumber(item) && (item->valueint >= 0)) return true;
+            break;
+            
+        case Json_Config_Field_Allowed_Routes_Args:
+            if (cJSON_IsArray(item)) return true;
+            break;
+            
         default:
             break;
     }
     return false;
+}
+
+Config_Result populate_allowed_routes(Config_t *cfg, const cJSON *item)
+{
+    printf("Populating allowed routes from JSON array\n");
+    size_t routes_count = (size_t)cJSON_GetArraySize(item);
+    
+    cfg->allowed_routes_count = routes_count;
+    printf("Allocating memory for %zu allowed routes\n", routes_count);
+    cfg->allowed_routes = malloc(sizeof(struct Routes_Allowed_Route_t) * routes_count);
+    printf("Memory allocated for allowed routes\n");
+    
+    size_t i = 0;
+    for (i = 0; i < routes_count; i++)
+    {
+        cJSON *route_item = cJSON_GetArrayItem(item, i);
+        if (route_item == NULL)
+        {
+            continue;
+        }
+        
+        size_t count = cJSON_GetArraySize(route_item);
+        for (size_t j = 0; j < count; j++)
+        {
+            cJSON *sub_item = cJSON_GetArrayItem(route_item, j);
+            if (sub_item == NULL) continue;
+
+            char* field_name = sub_item->string;
+            printf("Sub-item %zu field name: %s\n", j, field_name);
+            if (field_name == NULL)
+                continue;
+                
+            Json_Config_Field_Enum field_enum = get_json_field_name_enum(field_name);
+
+            if (field_enum == Json_Config_Field_Invalid)
+                return Config_Result_Reading_Error;
+
+            if (validate_json_field(field_enum, sub_item))
+            {
+                switch (field_enum)
+                {
+                case Json_Config_Field_Allowed_Routes_Route:
+                    printf("Setting route for allowed_routes[%zu]: %s\n", i, sub_item->valuestring);
+                    cfg->allowed_routes[i].route = strdup(sub_item->valuestring);
+                    break;
+
+                case Json_Config_Field_Allowed_Routes_Method:
+                    printf("Setting method for allowed_routes[%zu]: %s\n", i, sub_item->valuestring);
+                    cfg->allowed_routes[i].method = strdup(sub_item->valuestring);
+                    break;
+
+                case Json_Config_Field_Allowed_Routes_Args_Count:
+                    cfg->allowed_routes[i].args_count = (size_t)(route_item->valueint);
+                    break;
+
+                case Json_Config_Field_Allowed_Routes_Args:
+                    if (cJSON_IsArray(sub_item) && cJSON_GetArraySize(sub_item) > 0)
+                    {
+                        size_t args_count = (size_t)cJSON_GetArraySize(sub_item);
+                        cfg->allowed_routes[i].args = malloc(sizeof(char *) * args_count);
+                        size_t j = 0;
+                        for (j = 0; j < args_count; j++)
+                        {
+                            cJSON *arg_item = cJSON_GetArrayItem(sub_item, j);
+                            if (arg_item != NULL && cJSON_IsString(arg_item))
+                            {
+                                cfg->allowed_routes[i].args[j] = strdup(arg_item->valuestring);
+                            }
+                        }
+                    }
+                    break;
+
+                default:
+                    break;
+                }
+            }
+            else
+            {
+                return Config_Result_Validation_Error;
+            }
+        }
+        
+        
+    }
+    return Config_Result_OK;
 }
 
 /**
@@ -129,7 +234,6 @@ Config_Result parse_json_to_config(Config_t* cfg, const char* config_file_path)
         
         Json_Config_Field_Enum field_enum = get_json_field_name_enum(field_name);
         
-        printf("Parsing field: %s (enum: %d)\n", field_name, field_enum);
         if(validate_json_field(field_enum, current_element))
         {
             switch (field_enum)
@@ -156,41 +260,22 @@ Config_Result parse_json_to_config(Config_t* cfg, const char* config_file_path)
                 
                 case Json_Config_Field_Postgresql_Api_Key:
                     cfg->config_postgresql_api_key = strdup(current_element->valuestring);
-                    printf("PostgreSQL API Key set to: %s\n", cfg->config_postgresql_api_key);
                     break;
                     
                 case Json_Config_Field_Locationiq_Access_Token:
-                    cfg->locationiq_api_key = strdup(current_element->valuestring);
-                    printf("LocationIQ API Key set to: %s\n", cfg->locationiq_api_key);
+                    cfg->locationiq_access_token = strdup(current_element->valuestring);
                     break;
                 
                 case Json_Config_Field_Allowed_Routes:
                 {
-                    size_t routes_count = (size_t)cJSON_GetArraySize(current_element);
-                    cfg->allowed_routes = malloc(sizeof(struct Routes_Allowed_Route_t) * routes_count);
-                    size_t i = 0;
-                    for (i = 0; i < routes_count; i++)
+                    Config_Result route_err = populate_allowed_routes(cfg, current_element);
+                    if (route_err != Config_Result_OK)
                     {
-                        cJSON* route_item = cJSON_GetArrayItem(current_element, i);
-                        if (route_item == NULL) continue;
-                        
-                        cJSON* route_field = cJSON_GetObjectItem(route_item, "route");
-                        cJSON* method_field = cJSON_GetObjectItem(route_item, "method");
-                        
-                        if (route_field == NULL || method_field == NULL) continue;
-                        
-                        if (!cJSON_IsString(route_field) || !cJSON_IsString(method_field))
-                        {
-                            current_element = NULL;
-                            cJSON_Delete(root);
-                            return Config_Result_Validation_Error;
-                        }
-
-                        cfg->allowed_routes[i].route = strdup(route_field->valuestring);
-                        cfg->allowed_routes[i].method = strdup(method_field->valuestring);
+                        current_element = NULL;
+                        cJSON_Delete(root);
+                        return route_err;
                     }
-                    
-                    cfg->allowed_routes_count = routes_count;
+                    break;
                 }
                 
                 default:
@@ -207,5 +292,7 @@ Config_Result parse_json_to_config(Config_t* cfg, const char* config_file_path)
         
         
     }
+    cJSON_Delete(root);
+    printf("Configuration loaded successfully from %s\n", config_file_path);
     return Config_Result_OK;
 }

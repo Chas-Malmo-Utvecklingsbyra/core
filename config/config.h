@@ -27,11 +27,30 @@
  *   "max_connections" : 10,
  *   "postgresql_host" : "localhost",
  *   "postgresql_api_key" : "asdasdd",
- *   "locationiq_api_key" : ""
+ *   "locationiq_api_key" : "",
+ *   "allowed_routes" : [
+ *     {
+ *      "route" : "/weather",
+ *      "method" : "GET",
+ *      "args_count" : 2,
+ *      "args" : 
+ *      [
+ *          "key1" : "string",
+ *          "key2" : "double"
+ *      ]
+ *     },
+ *    {
+ *    "route" : "/",
+ *    "method" : "GET",
+ *    "args_count" : 0,
+ *    "args" : []
+ *    }
+ *   ]
  * }
  */
 
 typedef struct Config_t Config_t;
+typedef struct Routes_Allowed_Route_t Routes_Allowed_Route_t;
 
 typedef enum Config_Result
 {
@@ -46,6 +65,8 @@ struct Routes_Allowed_Route_t
 {
     char* route;
     char* method;
+    size_t args_count;
+    char **args;
 };
 
 struct Config_t
@@ -56,9 +77,10 @@ struct Config_t
     size_t config_max_connections;
     char *config_postgresql_host;
     char *config_postgresql_api_key;
-    struct Routes_Allowed_Route_t* allowed_routes;
+    char *locationiq_access_token;
+    struct Routes_Allowed_Route_t *allowed_routes;
     size_t allowed_routes_count;
-    char *locationiq_api_key;
+
 };
 
 Config_t* config_get_instance(const char* config_file_path);

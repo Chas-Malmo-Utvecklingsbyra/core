@@ -3,34 +3,28 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
+#include "../string/strdup.h"
 
-Weather_Response weather_get_data(const char* api)
+Weather_Response weather_get_data(const char* api_url)
 {
-    Http h = {0};
-
+    char* http_resp_data = NULL;
     Weather_Response response = {0};
     response.error = true;
 
-    if (http_initialize(&h) == HTTP_ERROR_FAILED_TO_INITIALIZE)
-    {
-        printf("Http_Initialize returned -1 in weather_get_data\n");
-        return response;
-    }
-
-    Http_Response http_resp = {0};
-    if (http_get(&h, api, &http_resp, NULL) == HTTP_ERROR_FAILED_TO_PERFORM)
+    if (http_get(api_url, http_resp_data, NULL) == HTTP_ERROR_FAILED_TO_PERFORM)
     {
         printf("Http_Perform failed in weather_get_data\n");
         return response;
     }
+    
+    if (http_resp_data == NULL)
+    {
+        printf("response from http_get is NULL\n");
+        return response;
+    }
 
     response.error = false;
-    response.data = (char*)malloc(http_resp.size + 1);
-    strcpy(response.data, http_resp.data);
-
-
-    http_dispose_response(&http_resp);
-    http_dispose(&h);
+    response.data = http_resp_data;
     return response;
 }
 
