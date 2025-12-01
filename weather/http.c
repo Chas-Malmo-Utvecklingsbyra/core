@@ -74,7 +74,12 @@ Http_Error http_initialize(Http* h)
 Http_Error http_get(const char *url, char **response, const char *headers[])
 {
     //printf("HTTP GET called with URL: %s\n", url);
+
+
     bool cfg_debug = config_get_instance(NULL)->config_debug;
+
+    printf("Hello1231\n");
+
     Http h;
     struct curl_slist *slist_headers = NULL;
     
@@ -82,7 +87,8 @@ Http_Error http_get(const char *url, char **response, const char *headers[])
     {
         http_populate_headers(slist_headers, headers);
     }
-    
+
+
     Http_Response http_response;
     http_response.data = NULL;
     http_response.size = 0;
