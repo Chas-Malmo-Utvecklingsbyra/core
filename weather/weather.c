@@ -103,9 +103,16 @@ Weather_Response weather_get_data_from_json(char* json, char* locationiq_json)
 
 Weather_Response weather_get_data(const char* latitude, const char* longitude)
 {
+    Weather_Response response = {0};
+
+    if (latitude == NULL || longitude == NULL)
+    {
+        response.error = true;
+        return response;
+    }
+
     char* http_resp_data = NULL;
     char* http_locationiq_data = NULL;
-    Weather_Response response = {0};
     response.error = true;
 
     /* -4 for both %s */
