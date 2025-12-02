@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include "../shared/tcp_shared.h"
+#include "../../weather/weather.h"
 
 #ifndef TCP_CLIENT_RECEIVE_BUFFER_SIZE
     #define TCP_CLIENT_RECEIVE_BUFFER_SIZE 2048
@@ -18,7 +19,7 @@ typedef struct TCP_Client_Server TCP_Client_Server;
 typedef enum {
     
     TCP_Client_Connection_State_Disconnected,
-    TCP_Client_Connection_State_Initialized,
+    TCP_Client_Connection_State_Connecting,
     TCP_Client_Connection_State_Connected,
     TCP_Client_Connection_State_Working,
     TCP_Client_Connection_State_Stopped_Working,
@@ -51,7 +52,6 @@ typedef enum {
 typedef void(*TCP_Client_Callback_On_Connect)(TCP_Client *client);
 typedef void(*TCP_Client_Callback_On_Disconnect)(TCP_Client *client);
 typedef void(*TCP_Client_Callback_On_Received_Bytes_From_Server)(TCP_Client *client, const uint8_t *buffer, const uint32_t buffer_size);
-/* typedef void(*TCP_Client_Callback_On_Bytes_Sent)(TCP_Client *client, uint32_t bytes); */
 typedef void(*TCP_Client_Callback_On_Error)(TCP_Client *client, TCP_Client_Result error);
 
 struct TCP_Client_Server {
@@ -69,19 +69,15 @@ struct TCP_Client_Server {
 };
 
 struct TCP_Client {    
-    
-    /* bool initialized; */    
-    /* bool connected; */    
+       
     bool working;    
 
     TCP_Client_Server server;
-    /* uint64_t last_activity_timestamp; */
-
+    
     TCP_Client_Callback_On_Received_Bytes_From_Server on_received_callback;
     TCP_Client_Callback_On_Connect on_connect_callback;
     TCP_Client_Callback_On_Disconnect on_disconnect_callback;
     TCP_Client_Callback_On_Error on_error_callback;
-    /* TCP_Client_Callback_On_Bytes_Sent on_bytes_sent_callback; */
 };
 
 

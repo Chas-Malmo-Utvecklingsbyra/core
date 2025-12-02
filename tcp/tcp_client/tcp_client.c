@@ -16,7 +16,6 @@
 #include <sys/socket.h>
 
 #include "../../utils/min.h"
-#include "../../utils/clock_monotonic.h"
 
 /* Private functions */
 
@@ -37,7 +36,7 @@ TCP_Client_Result tcp_client_init(TCP_Client *client,
     assert(on_connect != NULL);
     assert(on_disconnect != NULL);
     assert(on_error != NULL);
-    /* assert(on_bytes_sent != NULL); */
+    
     assert(client->server.connection_state == TCP_Client_Connection_State_Disconnected);
     
     /* 
@@ -48,19 +47,17 @@ TCP_Client_Result tcp_client_init(TCP_Client *client,
     memset(client, 0, sizeof(TCP_Client));   
         
     client->server.socket.file_descriptor = -1;
-    client->server.connection_state = TCP_Client_Connection_State_Initialized;
     client->server.incoming_buffer[0] = 0;
     client->server.outgoing_buffer[0] = 0;
     client->server.outgoing_buffer_bytes = 0;
     client->server.close_requested = false;
-
+    
     client->on_received_callback = on_received;
     client->on_connect_callback = on_connect;
     client->on_disconnect_callback = on_disconnect;
     client->on_error_callback = on_error;
-    /* client->on_bytes_sent_callback = on_bytes_sent; */
-    /* client->last_activity_timestamp = SystemMonotonicMS(); */
     
+    client->server.connection_state = TCP_Client_Connection_State_Connecting;
     return TCP_Client_Result_OK;
 }
 
@@ -68,7 +65,7 @@ TCP_Client_Result tcp_client_connect(TCP_Client *client, const char *ip, int por
 
     assert(client != NULL);
     assert(ip != NULL);
-    assert(client->server.connection_state == TCP_Client_Connection_State_Initialized || client->server.connection_state == TCP_Client_Connection_State_Disconnected);
+    assert(client->server.connection_state == TCP_Client_Connection_State_Connecting || client->server.connection_state == TCP_Client_Connection_State_Disconnected);
     
     if(client->server.connection_state == TCP_Client_Connection_State_Connected){
         return TCP_Client_Result_Already_Connected;
@@ -80,12 +77,31 @@ TCP_Client_Result tcp_client_connect(TCP_Client *client, const char *ip, int por
     addr.sin_family = AF_INET;
     addr.sin_port = htons((uint16_t)port);
 
-    if(inet_pton(AF_INET, ip, &addr.sin_addr) <= 0){
+    struct addrinfo hints;
+    struct addrinfo *responses = NULL;
+    char port_str[6];
+    int err;
+
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+    snprintf(port_str, sizeof(port_str), "%d", port);
+
+    err = getaddrinfo(ip, port_str, &hints, &responses);
+    if(err != 0 || responses == NULL){
         if(client->on_error_callback){
             client->on_error_callback(client, TCP_Client_Result_Error_Invalid_Address);
         }
         return TCP_Client_Result_Error_Invalid_Address;
     }
+
+    struct sockaddr_in *ipv4 = (struct sockaddr_in *)responses->ai_addr;
+    addr.sin_family = AF_INET;
+    addr.sin_port = ipv4->sin_port;
+    addr.sin_addr = ipv4->sin_addr;
+
+    freeaddrinfo(responses);
+
 
     int fd = socket(AF_INET, SOCK_STREAM, 0);
     if(fd < 0){
@@ -120,7 +136,6 @@ TCP_Client_Result tcp_client_connect(TCP_Client *client, const char *ip, int por
     client->server.connection_state = TCP_Client_Connection_State_Connected;
     if(client->on_connect_callback) client->on_connect_callback(client);
     client->server.outgoing_buffer_bytes = client->server.outgoing_buffer_bytes;
-    /* client->last_activity_timestamp = SystemMonotonicMS(); */
     
     return TCP_Client_Result_OK;
 }
@@ -150,7 +165,6 @@ TCP_Client_Result tcp_client_read(TCP_Client *client){
     }
 
     if(totalBytesRead > 0 && client->on_received_callback){
-        /* client->last_activity_timestamp = SystemMonotonicMS(); */
         client->on_received_callback(client, client->server.incoming_buffer, (uint32_t)totalBytesRead);
     }
 
@@ -173,14 +187,16 @@ TCP_Client_Result tcp_client_send_queued(TCP_Client *client){
 
     Socket_Result write_result = socket_write(&client->server.socket, client->server.outgoing_buffer, client->server.outgoing_buffer_bytes, &sent);
 
-    if(write_result == socket_result_connection_closed){
-        client->server.connection_state = TCP_Client_Connection_State_Disconnected;
-        client->on_disconnect_callback(client);
-        return TCP_Client_Result_Disconnected;
+    if(write_result != Socket_Result_OK){
+        if(write_result == socket_result_connection_closed){
+            client->server.connection_state = TCP_Client_Connection_State_Disconnected;
+            client->on_disconnect_callback(client);
+            return TCP_Client_Result_Disconnected;
+        }
+        return TCP_Client_Result_OK;
     }
 
     if(sent > 0){
-        /* client->last_activity_timestamp = SystemMonotonicMS(); */
         if(sent < client->server.outgoing_buffer_bytes){
             uint32_t remaining = client->server.outgoing_buffer_bytes - sent;
             memmove(client->server.outgoing_buffer, client->server.outgoing_buffer + sent, remaining);
@@ -214,10 +230,16 @@ TCP_Client_Result tcp_client_work(TCP_Client *client){
     client->server.connection_state = TCP_Client_Connection_State_Working;
 
     TCP_Client_Result reading = tcp_client_read(client);
+    if(reading == TCP_Client_Result_Disconnected){
+        client->server.connection_state = TCP_Client_Connection_State_Disconnected;
+        client->working = false;
+        return TCP_Client_Result_Disconnected;
+    }
+
     if(reading != TCP_Client_Result_OK){
         client->server.connection_state = TCP_Client_Connection_State_Stopped_Working;
         client->working = false;
-        return TCP_Client_Result_Error_Reading;
+        return reading;
     }
 
     TCP_Client_Result send_queue = tcp_client_send_queued(client);
@@ -226,11 +248,6 @@ TCP_Client_Result tcp_client_work(TCP_Client *client){
         client->working = false;
         return TCP_Client_Result_Error_Sending_Queued;
     }
-
-    /* if(client->last_activity_timestamp + 15000 < SystemMonotonicMS()){
-        client->working = false;
-        return TCP_Client_Result_Disconnected;
-    } */
 
     if(client->server.connection_state == TCP_Client_Connection_State_Stopped_Working){
         client->server.connection_state = TCP_Client_Connection_State_Connected;
