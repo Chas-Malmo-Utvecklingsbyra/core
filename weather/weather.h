@@ -27,4 +27,7 @@ typedef struct
 
 Weather_Response weather_get_data(const char* latitude, const char* longitude);
 
+/* Return value: The json string (NEEDS TO BE FREED) */
+char* weather_convert_response_to_json(Weather_Response* response);
+
 #endif

@@ -143,3 +143,22 @@ Weather_Response weather_get_data(const char* latitude, const char* longitude)
     response.error = false;
     return response;
 }
+
+char* weather_convert_response_to_json(Weather_Response* response)
+{
+    cJSON* root = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "location", response->location);
+    cJSON_AddNumberToObject(root, "temperature", response->temperature);
+    cJSON_AddStringToObject(root, "unit", &response->unit);
+    cJSON_AddStringToObject(root, "condition", response->condition);
+    cJSON_AddNumberToObject(root, "feels_like", response->feels_like);
+    cJSON_AddNumberToObject(root, "humidity", response->humidity);
+    cJSON* wind_object = cJSON_AddObjectToObject(root, "wind");
+    cJSON_AddNumberToObject(wind_object, "speed", response->wind.speed);
+    cJSON_AddNumberToObject(wind_object, "direction", response->wind.direction);
+    cJSON_AddStringToObject(wind_object, "sunrise", response->sunrise);
+    cJSON_AddStringToObject(wind_object, "sunset", response->sunset);
+    cJSON_AddStringToObject(wind_object, "icon_url", response->icon_url);
+
+    return cJSON_Print(root);
+}
