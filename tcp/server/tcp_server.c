@@ -47,7 +47,7 @@ TCP_Server_Result tcp_server_init(TCP_Server *server, int port, TCP_Server_Callb
 	}
 	memset(hints, 0, sizeof(struct addrinfo));
 
-	hints->ai_family = AF_UNSPEC;
+	hints->ai_family = AF_INET;
 	hints->ai_socktype = SOCK_STREAM;
 	hints->ai_flags = AI_PASSIVE;
 
@@ -312,7 +312,7 @@ TCP_Server_Result tcp_server_dispose(TCP_Server *server){
 	}
 
 	close(server->socket.file_descriptor);
-	freeaddrinfo(server->hints);
+	/* freeaddrinfo(server->hints); */	/* created a double-free when I ran the TCP-client (PL) */
 	free(server->hints);
 	free(server->portString);
 

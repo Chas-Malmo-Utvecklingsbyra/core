@@ -25,7 +25,7 @@ typedef struct
 Http_Error http_initialize(Http* h);
 
 /* returns: Http_Error enum. Outputs a response. Headers may be set to NULL if not included in get request.*/
-Http_Error http_get(Http* h, const char* url, Http_Response* response, struct curl_slist* headers);
+Http_Error http_get(const char *url, char **response, const char *headers[]);
 
 /* returns: Http_Error enum. Headers may be set to NULL if not included in post request. */
 Http_Error http_post(Http* h, const char* url, char* postData, struct curl_slist* headers);
@@ -34,6 +34,6 @@ Http_Error http_post(Http* h, const char* url, char* postData, struct curl_slist
 void http_dispose_response(Http_Response* response);
 
 /* Disposes the response heap memory */
-void http_dispose(Http* h);
+void http_dispose(Http* h, struct curl_slist* headers);
 
 #endif
