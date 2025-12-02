@@ -29,7 +29,8 @@ TCP_Server_Result tcp_server_client_timeout(TCP_Server *server);
 
 /*  initiate server 
 	provide port in range of 0 to 65535 */
-TCP_Server_Result tcp_server_init(TCP_Server *server, int port, TCP_Server_Callback_On_Recieved_Bytes_From_Client on_received_bytes_from_client) {
+TCP_Server_Result tcp_server_init(TCP_Server *server, uint16_t port, void *context, TCP_Server_Callback_On_Recieved_Bytes_From_Client on_received_bytes_from_client) {
+	server->context = context;
 
 	/* port more customizable , port passed as int now stored as int- and string-port in struct*/
 	server->portInteger = port;
@@ -51,16 +52,15 @@ TCP_Server_Result tcp_server_init(TCP_Server *server, int port, TCP_Server_Callb
 	hints->ai_socktype = SOCK_STREAM;
 	hints->ai_flags = AI_PASSIVE;
 
-	server->hints = hints; /* store in server struct */
+	server->hints = hints;
 
 	server->on_received_bytes_from_client = on_received_bytes_from_client;
 
-	/* moved from _start*/
 	int i;
-	for (i = 0; i < TCP_MAX_CLIENTS_PER_SERVER; i++)
+	for (i = 0; i < TCP_MAX_CLIENTS_PER_SERVER; i++) {
 		server->clients[i].in_use = false;
+	}
 	
-	/* reset tracking counters */
 	server->client_count = 0;
 	server->next_unique_id = 0;
 
@@ -119,13 +119,12 @@ TCP_Server_Result tcp_server_start(TCP_Server *server){
 
 	server->socket.file_descriptor = (uint32_t)fd;
 
-	printf("Server lyssnar på port %s\n", server->portString);
+	// printf("Server started listening to port %s\n", server->portString);
 
     return TCP_Server_Result_OK;
 }
 
 TCP_Server_Result tcp_server_work(TCP_Server *server){
-
 	TCP_Server_Result server_accept_result = tcp_server_accept(server);
 	if (server_accept_result != TCP_Server_Result_OK && server_accept_result != TCP_Server_Result_Server_Full)
 	{
@@ -174,9 +173,9 @@ TCP_Server_Result tcp_server_send(TCP_Server *server){
 			continue;
 		}
 
-		uint32_t totalBytesSent = 0;
+		uint32_t total_bytes_sent = 0;
 
-		Socket_Result write_result = socket_write(&client->socket, client->outgoing_buffer, client->outgoing_buffer_amount_of_bytes, &totalBytesSent);
+		Socket_Result write_result = socket_write(&client->socket, client->outgoing_buffer, client->outgoing_buffer_amount_of_bytes, &total_bytes_sent);
 		
 		if (write_result == socket_result_connection_closed)
 		{
@@ -184,28 +183,23 @@ TCP_Server_Result tcp_server_send(TCP_Server *server){
 			continue;
 		}
 		
-		assert(totalBytesSent <= client->outgoing_buffer_amount_of_bytes);
+		assert(total_bytes_sent <= client->outgoing_buffer_amount_of_bytes);
 		
-		printf("total bytes send: %u\n", totalBytesSent);
-		/* TODO: 1 2 3 4 5 6 7 8 */
 		uint32_t y;
-		for ( y = 0; y < client->outgoing_buffer_amount_of_bytes - totalBytesSent; y++)
+		for (y = 0; y < client->outgoing_buffer_amount_of_bytes - total_bytes_sent; y++)
 		{
-			client->outgoing_buffer[y] = client->outgoing_buffer[totalBytesSent+y];
+			client->outgoing_buffer[y] = client->outgoing_buffer[total_bytes_sent+y];
 		}
-		client->outgoing_buffer[totalBytesSent+1] = '\0';
+		client->outgoing_buffer[total_bytes_sent+1] = '\0';
 
-		client->outgoing_buffer_amount_of_bytes -= totalBytesSent;
-		printf("Buffer amount of bytes: %u\n", client->outgoing_buffer_amount_of_bytes);
-			/* server->on_received_bytes_from_client(server, client, &client->receive_buffer[0], totalBytesRead); */
+		client->outgoing_buffer_amount_of_bytes -= total_bytes_sent;
 	}
 
 	return TCP_Server_Result_OK;
 
 }
 
-TCP_Server_Result tcp_server_accept(TCP_Server *server){
-    /* printf("Hello from ACCEPT\n"); */
+TCP_Server_Result tcp_server_accept(TCP_Server *server) {
     int cfd = accept(server->socket.file_descriptor, NULL, NULL);
 	if (cfd < 0)
 	{
@@ -233,7 +227,7 @@ TCP_Server_Result tcp_server_accept(TCP_Server *server){
 			client->in_use = true;
 			client->socket.file_descriptor = cfd;
 			client->timestamp = SystemMonotonicMS();
-			printf("Ny klient accepterad (FD: %d, index: %i/%i)\n", client->socket.file_descriptor, i+1, TCP_MAX_CLIENTS_PER_SERVER);
+			// printf("Ny klient accepterad (FD: %d, index: %i/%i)\n", client->socket.file_descriptor, i+1, TCP_MAX_CLIENTS_PER_SERVER);
 			return TCP_Server_Result_OK;
 		}
 	}
@@ -245,8 +239,7 @@ TCP_Server_Result tcp_server_accept(TCP_Server *server){
     return TCP_Server_Result_Server_Full;
 }
 
-TCP_Server_Result tcp_server_read(TCP_Server *server)
-{
+TCP_Server_Result tcp_server_read(TCP_Server *server) {
 	/* printf("Hello from READ\n"); */
 	size_t i;
 	for (i = 0; i < server->client_count; i++)
@@ -264,7 +257,7 @@ TCP_Server_Result tcp_server_read(TCP_Server *server)
 		}
 		if(totalBytesRead > 0)
 		{
-			server->on_received_bytes_from_client(server, client, &client->receive_buffer[0], totalBytesRead);
+			server->on_received_bytes_from_client(server->context, server, client, &client->receive_buffer[0], totalBytesRead);
 		}
 	}
 
@@ -272,12 +265,9 @@ TCP_Server_Result tcp_server_read(TCP_Server *server)
 }
 
 TCP_Server_Result tcp_server_send_to_client(TCP_Server *server, TCP_Server_Client *client, const uint8_t *buffer, const uint32_t buffer_size){
-	
 	(void)server;
 
 	uint32_t outgoing_capacity_remaining = sizeof(client->outgoing_buffer) - client->outgoing_buffer_amount_of_bytes; 
-	/* client->outgoing_buffer */
-
 
 	if (outgoing_capacity_remaining < buffer_size){
 		return TCP_Server_Result_Not_Enough_Space;
@@ -325,10 +315,7 @@ TCP_Server_Result tcp_server_client_timeout(TCP_Server *server){
 	for(i = 0; i < server->client_count; i++){
 		if(server->clients[i].timestamp + 15000 < SystemMonotonicMS()){
 			server->clients[i].close_connection = true;
-			printf("updated CLOSE status on client: %i\n", i);
 		}
-
-
 	}
 	return TCP_Server_Result_OK;
 }
@@ -347,10 +334,8 @@ TCP_Server_Result tcp_server_close_connection(TCP_Server *server){
 			
 			memset(&server->clients[server->client_count-1], 0, sizeof(TCP_Server_Client));
 			server->client_count--;
-			printf("closed client connection %i\n", i);
+			// printf("closed client connection %i\n", i);
 		}
-
-
 	}
 	return TCP_Server_Result_OK;
 }

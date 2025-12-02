@@ -14,12 +14,21 @@ typedef enum
     POST,
     GET,
     OPTIONS
-}Http_Method;
+} Http_Method;
+
+#ifndef HTTP_REQUEST_PATH_MAX_LENGTH
+#define HTTP_REQUEST_PATH_MAX_LENGTH 512
+#endif
+
+#ifndef HTTP_REQUEST_QUERY_MAX_LENGTH
+#define HTTP_REQUEST_QUERY_MAX_LENGTH 512
+#endif
 
 typedef struct
 {
     Http_Method method;
-    char path[400];
+    char path[HTTP_REQUEST_PATH_MAX_LENGTH];
+    char query[HTTP_REQUEST_QUERY_MAX_LENGTH];
     char http[9];
 } Http_Request_Start_Line;
 

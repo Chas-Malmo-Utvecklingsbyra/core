@@ -4,14 +4,6 @@
 #include <string.h>
 #include "../string/strdup.h"
 
-/*
-
-#ifndef HTTP_PARSER_DEBUG
-    #define HTTP_PARSER_DEBUG
-#endif
-
-*/
-
 void Http_Parser_Cleanup(Http_Request* request)
 {
     for (size_t i = 0; i < request->filled_to; i++)
@@ -111,10 +103,7 @@ void Http_Request_Print_All(Http_Request* request)
     }
 }
 
-Http_Request* Http_Parser_Parse(const char* buffer)
-{
-    printf("Buffer to parse: %s\n", buffer);
-
+Http_Request* Http_Parser_Parse(const char* buffer) {
     if (buffer == NULL)
         return NULL;
 
@@ -142,12 +131,9 @@ Http_Request* Http_Parser_Parse(const char* buffer)
         *end = '\0';
         line = end + 2;
 
-
         /* Adds to the Http_Request_Line list */
         if (strlen(line_start) > 0 && !is_first_line)
         {
-
-
             Http_Request_Line request_line = {0};
 
             size_t line_size = strlen(line_start);
@@ -159,19 +145,28 @@ Http_Request* Http_Parser_Parse(const char* buffer)
             memset(request_line.value, 0, line_size);
 
             sscanf(line_start, "%[^:]: %[^\r\n]", request_line.key, request_line.value);
-            printf("[%s][%s]\n", request_line.key, request_line.value);
+            // printf("[%s][%s]\n", request_line.key, request_line.value);
             Http_Request_Line_Add(request, request_line);
-
-
-#ifdef HTTP_PARSER_DEBUG
-            printf("Key, Value: [%s][%s]\n", request_line.key, request_line.value);
-#endif
         }
 
         if (is_first_line)
         {
             char method[8] = {0};
-            sscanf(line_start, "%7s %399s %8s", method, request->start_line.path, request->start_line.http);
+            
+            char raw_path[400] = {0};
+            sscanf(line_start, "%7s %399s %8s", method, raw_path, request->start_line.http);
+
+            char *qmark = strchr(raw_path, '?');
+            if (qmark) {
+                size_t path_len = qmark - raw_path;
+                memcpy(request->start_line.path, raw_path, path_len);
+                request->start_line.path[path_len] = '\0';
+
+                strcpy(request->start_line.query, qmark + 1);
+            } else {
+                strcpy(request->start_line.path, raw_path);
+                request->start_line.query[0] = '\0';
+            }
 
             if (strcmp(method, "POST") == 0)
             {

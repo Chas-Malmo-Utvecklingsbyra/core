@@ -13,7 +13,7 @@
 typedef struct TCP_Server TCP_Server;
 typedef struct TCP_Server_Client TCP_Server_Client;
 
-typedef void (*TCP_Server_Callback_On_Recieved_Bytes_From_Client)(TCP_Server *server, TCP_Server_Client *client, const uint8_t *buffer, const uint32_t buffer_size);
+typedef void (*TCP_Server_Callback_On_Recieved_Bytes_From_Client)(void *context, TCP_Server *server, TCP_Server_Client *client, const uint8_t *buffer, const uint32_t buffer_size);
 
 #ifndef TCP_MAX_CLIENT_BUFFER_SIZE
     #define TCP_MAX_CLIENT_BUFFER_SIZE 1024
@@ -43,6 +43,7 @@ struct TCP_Server {
     uint32_t next_unique_id;
 
     TCP_Server_Callback_On_Recieved_Bytes_From_Client on_received_bytes_from_client;
+    void *context;
 };
 
 typedef enum {
@@ -58,7 +59,7 @@ typedef enum {
     /* ... */
 } TCP_Server_Result;
 
-TCP_Server_Result tcp_server_init(TCP_Server *server, int port, TCP_Server_Callback_On_Recieved_Bytes_From_Client on_received_bytes_from_client);
+TCP_Server_Result tcp_server_init(TCP_Server *server, uint16_t port, void *context, TCP_Server_Callback_On_Recieved_Bytes_From_Client on_received_bytes_from_client);
 
 TCP_Server_Result tcp_server_start(TCP_Server *server);
 
