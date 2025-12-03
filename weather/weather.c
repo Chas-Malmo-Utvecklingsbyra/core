@@ -111,6 +111,37 @@ Weather_Response weather_get_data(const char* latitude, const char* longitude)
         return response;
     }
 
+    char* endptr = NULL;
+    double latitude_double = strtod(latitude, &endptr);
+
+    if (endptr == latitude || *endptr != '\0')
+    {
+        response.error = true;
+        return response;
+    }
+
+    if (latitude_double < -90.0 || latitude_double > 90.0)
+    {
+        response.error = true;
+        return response;
+    }
+
+    char* endptr2 = NULL;
+    double longitude_double = strtod(longitude, &endptr2);
+
+    if (endptr2 == longitude || *endptr2 != '\0')
+    {
+        response.error = true;
+        return response;
+    }
+
+    if (longitude_double < -90.0 || longitude_double > 90.0)
+    {
+        response.error = true;
+        return response;
+    }
+
+
     char* http_resp_data = NULL;
     char* http_locationiq_data = NULL;
     response.error = true;
