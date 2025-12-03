@@ -36,8 +36,6 @@ char* get_string_from_weathercode(int weather_code)
 
 Weather_Response weather_get_data_from_json(char* json, char* locationiq_json)
 {
-    printf("Hello2!\n");
-
     cJSON* parsed_json = cJSON_Parse(json);
 
     cJSON* current = cJSON_GetObjectItemCaseSensitive(parsed_json, "current");

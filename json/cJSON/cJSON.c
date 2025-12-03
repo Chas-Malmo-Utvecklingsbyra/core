@@ -614,14 +614,11 @@ static cJSON_bool print_number(const cJSON * const item, printbuffer * const out
     }
     else
     {
-        printf("GURT::: %d", item->is_float);
-
         /* Try 15 decimal places of precision to avoid nonsignificant nonzero digits */
         if (!item->is_float)
             length = sprintf((char*)number_buffer, "%1.15g", d);
         else
         {
-            printf("Gonna print out as float!\n");
             length = sprintf((char*)number_buffer, "%1.1g", d);
 
         }
@@ -636,8 +633,6 @@ static cJSON_bool print_number(const cJSON * const item, printbuffer * const out
             }
             else
             {
-
-                printf("Gonna print out as float!\n");
                 length = sprintf((char*)number_buffer, "%1.1g", d);
             }
 
