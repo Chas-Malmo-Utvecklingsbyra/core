@@ -6,7 +6,7 @@
 #include "../../weather/weather.h"
 
 #ifndef TCP_CLIENT_RECEIVE_BUFFER_SIZE
-    #define TCP_CLIENT_RECEIVE_BUFFER_SIZE 2048
+    #define TCP_CLIENT_RECEIVE_BUFFER_SIZE 2048 * 4
 #endif
 
 #ifndef TCP_CLIENT_OUTGOING_BUFFER_SIZE
@@ -73,6 +73,8 @@ struct TCP_Client {
     bool working;    
 
     TCP_Client_Server server;
+
+    void* context;
     
     TCP_Client_Callback_On_Received_Bytes_From_Server on_received_callback;
     TCP_Client_Callback_On_Connect on_connect_callback;
@@ -82,7 +84,7 @@ struct TCP_Client {
 
 
 
-TCP_Client_Result tcp_client_init(TCP_Client *client, TCP_Client_Callback_On_Received_Bytes_From_Server on_received, TCP_Client_Callback_On_Connect on_connect, TCP_Client_Callback_On_Disconnect on_disconnect, TCP_Client_Callback_On_Error on_error);
+TCP_Client_Result tcp_client_init(TCP_Client *client, void* _Context, TCP_Client_Callback_On_Received_Bytes_From_Server on_received, TCP_Client_Callback_On_Connect on_connect, TCP_Client_Callback_On_Disconnect on_disconnect, TCP_Client_Callback_On_Error on_error);
 
 TCP_Client_Result tcp_client_connect(TCP_Client *client, const char *ip, int port);
 

@@ -25,7 +25,7 @@ static TCP_Client_Result tcp_client_requested_disconnect(TCP_Client *client);
 
 /*-------------------*/
 
-TCP_Client_Result tcp_client_init(TCP_Client *client, 
+TCP_Client_Result tcp_client_init(TCP_Client *client, void* _Context,
                                 TCP_Client_Callback_On_Received_Bytes_From_Server on_received, 
                                 TCP_Client_Callback_On_Connect on_connect, 
                                 TCP_Client_Callback_On_Disconnect on_disconnect, 
@@ -45,7 +45,7 @@ TCP_Client_Result tcp_client_init(TCP_Client *client,
     } */
 
     memset(client, 0, sizeof(TCP_Client));   
-        
+    
     client->server.socket.file_descriptor = -1;
     client->server.incoming_buffer[0] = 0;
     client->server.outgoing_buffer[0] = 0;
@@ -56,6 +56,7 @@ TCP_Client_Result tcp_client_init(TCP_Client *client,
     client->on_connect_callback = on_connect;
     client->on_disconnect_callback = on_disconnect;
     client->on_error_callback = on_error;
+    client->context = _Context;
     
     client->server.connection_state = TCP_Client_Connection_State_Connecting;
     return TCP_Client_Result_OK;
