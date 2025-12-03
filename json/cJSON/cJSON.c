@@ -614,14 +614,33 @@ static cJSON_bool print_number(const cJSON * const item, printbuffer * const out
     }
     else
     {
+        printf("GURT::: %d", item->is_float);
+
         /* Try 15 decimal places of precision to avoid nonsignificant nonzero digits */
-        length = sprintf((char*)number_buffer, "%1.15g", d);
+        if (!item->is_float)
+            length = sprintf((char*)number_buffer, "%1.15g", d);
+        else
+        {
+            printf("Gonna print out as float!\n");
+            length = sprintf((char*)number_buffer, "%1.1g", d);
+
+        }
 
         /* Check whether the original double can be recovered */
         if ((sscanf((char*)number_buffer, "%lg", &test) != 1) || !compare_double((double)test, d))
         {
-            /* If not, print with 17 decimal places of precision */
-            length = sprintf((char*)number_buffer, "%1.17g", d);
+            if (!item->is_float)
+            {
+                /* If not, print with 17 decimal places of precision */
+                length = sprintf((char*)number_buffer, "%1.17g", d);
+            }
+            else
+            {
+
+                printf("Gonna print out as float!\n");
+                length = sprintf((char*)number_buffer, "%1.1g", d);
+            }
+
         }
     }
 
@@ -2180,9 +2199,15 @@ CJSON_PUBLIC(cJSON*) cJSON_AddBoolToObject(cJSON * const object, const char * co
     return NULL;
 }
 
-CJSON_PUBLIC(cJSON*) cJSON_AddNumberToObject(cJSON * const object, const char * const name, const double number)
+CJSON_PUBLIC(cJSON*) cJSON_AddNumberToObject(cJSON * const object, const char * const name, const double number, const cJSON_bool is_float)
 {
     cJSON *number_item = cJSON_CreateNumber(number);
+
+    if (is_float)
+    {
+        number_item->is_float = true;
+    }
+
     if (add_item_to_object(object, name, number_item, &global_hooks, false))
     {
         return number_item;
