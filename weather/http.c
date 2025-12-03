@@ -73,12 +73,7 @@ Http_Error http_initialize(Http* h)
  */
 Http_Error http_get(const char *url, char **response, const char *headers[])
 {
-    //printf("HTTP GET called with URL: %s\n", url);
-
-
     bool cfg_debug = config_get_instance(NULL)->config_debug;
-
-    printf("Hello1231\n");
 
     Http h;
     struct curl_slist *slist_headers = NULL;
@@ -88,7 +83,6 @@ Http_Error http_get(const char *url, char **response, const char *headers[])
         http_populate_headers(slist_headers, headers);
     }
 
-
     Http_Response http_response;
     http_response.data = NULL;
     http_response.size = 0;
@@ -97,13 +91,17 @@ Http_Error http_get(const char *url, char **response, const char *headers[])
     
     if (result == HTTP_ERROR_FAILED_TO_INITIALIZE)
     {
-        if (cfg_debug) printf("Http_Initialize failed in http_get\n");
+        if (cfg_debug) 
+            printf("Http_Initialize failed in http_get\n");
+            
         return HTTP_ERROR_FAILED_TO_INITIALIZE;
     }
 
     if (h.curl == NULL)
     {
-        if (cfg_debug) printf("Curl failed to Initialize");
+        if (cfg_debug) 
+            printf("Curl failed to Initialize");
+            
         return HTTP_ERROR_FAILED_TO_INITIALIZE;
     }
 
@@ -116,24 +114,25 @@ Http_Error http_get(const char *url, char **response, const char *headers[])
         http_populate_headers(slist_headers, headers);
         curl_easy_setopt(h.curl, CURLOPT_HTTPHEADER, slist_headers);
     }
-    
-    if (cfg_debug) printf("Performing HTTP GET to URL: %s\n", url);
+
     CURLcode code = curl_easy_perform(h.curl);
     
-    if (cfg_debug) printf("CURL perform returned code: %d\n", code);
+    if (cfg_debug) 
+        printf("CURL perform returned code: %d\n", code);
 
     if (code != CURLE_OK)
     {
-        if (cfg_debug) printf("Curl failed to perform\n");
+        if (cfg_debug) 
+            printf("Curl failed to perform\n");
         return HTTP_ERROR_FAILED_TO_PERFORM;
     }
 
-    if (http_response.data)
+    if (http_response.data != NULL)
     {
-        printf("HTTP response data received (%d bytes):\n%s\n", http_response.size, http_response.data);
-        (*response) = strdup(http_response.data);
         if (cfg_debug)
-            printf("Response copied to output parameter:\n %s\n", (*response));
+            printf("HTTP response data received (%d bytes):\n%s\n", http_response.size, http_response.data);
+            
+        (*response) = strdup(http_response.data);
     }
 
     http_dispose_response(&http_response);

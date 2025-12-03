@@ -113,13 +113,10 @@ bool validate_json_field(Json_Config_Field_Enum field_enum, const cJSON* item)
 
 Config_Result populate_allowed_routes(Config_t *cfg, const cJSON *item)
 {
-    printf("Populating allowed routes from JSON array\n");
     size_t routes_count = (size_t)cJSON_GetArraySize(item);
     
     cfg->allowed_routes_count = routes_count;
-    printf("Allocating memory for %zu allowed routes\n", routes_count);
     cfg->allowed_routes = malloc(sizeof(struct Routes_Allowed_Route_t) * routes_count);
-    printf("Memory allocated for allowed routes\n");
     
     size_t i = 0;
     for (i = 0; i < routes_count; i++)
@@ -134,10 +131,10 @@ Config_Result populate_allowed_routes(Config_t *cfg, const cJSON *item)
         for (size_t j = 0; j < count; j++)
         {
             cJSON *sub_item = cJSON_GetArrayItem(route_item, j);
-            if (sub_item == NULL) continue;
+            if (sub_item == NULL) 
+                continue;
 
             char* field_name = sub_item->string;
-            printf("Sub-item %zu field name: %s\n", j, field_name);
             if (field_name == NULL)
                 continue;
                 
@@ -151,17 +148,15 @@ Config_Result populate_allowed_routes(Config_t *cfg, const cJSON *item)
                 switch (field_enum)
                 {
                 case Json_Config_Field_Allowed_Routes_Route:
-                    printf("Setting route for allowed_routes[%zu]: %s\n", i, sub_item->valuestring);
                     cfg->allowed_routes[i].route = strdup(sub_item->valuestring);
                     break;
 
                 case Json_Config_Field_Allowed_Routes_Method:
-                    printf("Setting method for allowed_routes[%zu]: %s\n", i, sub_item->valuestring);
                     cfg->allowed_routes[i].method = strdup(sub_item->valuestring);
                     break;
 
                 case Json_Config_Field_Allowed_Routes_Args_Count:
-                    cfg->allowed_routes[i].args_count = (size_t)(route_item->valueint);
+                    cfg->allowed_routes[i].args_count = sub_item->valueint;
                     break;
 
                 case Json_Config_Field_Allowed_Routes_Args:
