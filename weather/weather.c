@@ -66,6 +66,8 @@ Weather_Response weather_get_data_from_json(char* json, char* locationiq_json)
     cJSON* village = cJSON_GetObjectItemCaseSensitive(address, "village");
     cJSON* town = cJSON_GetObjectItemCaseSensitive(address, "town");
     cJSON* city = cJSON_GetObjectItemCaseSensitive(address, "city");
+    cJSON* county = cJSON_GetObjectItemCaseSensitive(address, "county");
+
 
     if (village)
     {
@@ -78,6 +80,14 @@ Weather_Response weather_get_data_from_json(char* json, char* locationiq_json)
     else if (city)
     {
         sprintf(response.location, "%s, %s", cJSON_GetStringValue(city), cJSON_GetStringValue(country));
+    }
+    else if (county)
+    {
+        sprintf(response.location, "%s, %s", cJSON_GetStringValue(county), cJSON_GetStringValue(country));
+    }
+    else
+    {
+        sprintf(response.location, "%s", "Unknown");
     }
 
     cJSON_Delete(parsed_locationiq_json);
@@ -186,14 +196,14 @@ char* weather_convert_response_to_json(Weather_Response* response)
 {
     cJSON* root = cJSON_CreateObject();
     cJSON_AddStringToObject(root, "location", response->location);
-    cJSON_AddNumberToObject(root, "temperature", response->temperature);
+    cJSON_AddNumberToObject(root, "temperature", response->temperature, true);
     cJSON_AddStringToObject(root, "unit", &response->unit);
     cJSON_AddStringToObject(root, "condition", response->condition);
-    cJSON_AddNumberToObject(root, "feels_like", response->feels_like);
-    cJSON_AddNumberToObject(root, "humidity", response->humidity);
+    cJSON_AddNumberToObject(root, "feels_like", response->feels_like, true);
+    cJSON_AddNumberToObject(root, "humidity", response->humidity, false);
     cJSON* wind_object = cJSON_AddObjectToObject(root, "wind");
-    cJSON_AddNumberToObject(wind_object, "speed", response->wind.speed);
-    cJSON_AddNumberToObject(wind_object, "direction", response->wind.direction);
+    cJSON_AddNumberToObject(wind_object, "speed", response->wind.speed, true);
+    cJSON_AddNumberToObject(wind_object, "direction", response->wind.direction, true);
     cJSON_AddStringToObject(root, "sunrise", response->sunrise);
     cJSON_AddStringToObject(root, "sunset", response->sunset);
     cJSON_AddStringToObject(root, "icon_url", response->icon_url);
