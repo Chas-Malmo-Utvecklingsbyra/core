@@ -186,7 +186,7 @@ TCP_Server_Result tcp_server_send(TCP_Server *server){
 		
 		assert(totalBytesSent <= client->outgoing_buffer_amount_of_bytes);
 		
-		printf("total bytes send: %u\n", totalBytesSent);
+		//printf("total bytes send: %u\n", totalBytesSent);
 		/* TODO: 1 2 3 4 5 6 7 8 */
 		uint32_t y;
 		for ( y = 0; y < client->outgoing_buffer_amount_of_bytes - totalBytesSent; y++)
@@ -196,7 +196,7 @@ TCP_Server_Result tcp_server_send(TCP_Server *server){
 		client->outgoing_buffer[totalBytesSent+1] = '\0';
 
 		client->outgoing_buffer_amount_of_bytes -= totalBytesSent;
-		printf("Buffer amount of bytes: %u\n", client->outgoing_buffer_amount_of_bytes);
+		//printf("Buffer amount of bytes: %u\n", client->outgoing_buffer_amount_of_bytes);
 			/* server->on_received_bytes_from_client(server, client, &client->receive_buffer[0], totalBytesRead); */
 	}
 
