@@ -619,8 +619,7 @@ static cJSON_bool print_number(const cJSON * const item, printbuffer * const out
             length = sprintf((char*)number_buffer, "%1.15g", d);
         else
         {
-            length = sprintf((char*)number_buffer, "%1.1g", d);
-
+            length = sprintf((char*)number_buffer, "%1.1lf", d);
         }
 
         /* Check whether the original double can be recovered */
@@ -633,7 +632,7 @@ static cJSON_bool print_number(const cJSON * const item, printbuffer * const out
             }
             else
             {
-                length = sprintf((char*)number_buffer, "%1.1g", d);
+                length = sprintf((char*)number_buffer, "%1.1lf", d);
             }
 
         }
