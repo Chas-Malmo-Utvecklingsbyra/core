@@ -2,6 +2,11 @@
 #include <stdlib.h>
 #include <assert.h>
 #include "fileHelper.h"
+#include <unistd.h>
+#include <limits.h>
+#include <errno.h>
+#include <string.h>
+
 
 /* Creates and returns a cJSON pointer that contains
 the data from the parsed JSON file */
@@ -89,4 +94,52 @@ bool file_delete(const char* fileName)
     }
 
     return true;
+}
+
+char* file_read_to_string(const char* fileName)
+{
+    char cwd[100];
+    if (getcwd(cwd, sizeof(cwd)) != NULL)
+        printf("Current working directory: %s\n", cwd);
+    else
+        perror("getcwd failed");
+
+    printf("Trying to open file: %s\n", fileName);
+
+    FILE *f = fopen(fileName, "rb");
+    if (!f)
+    {
+        perror("fopen failed");
+        return NULL;
+    }
+
+    fseek(f, 0, SEEK_END);
+    long length = ftell(f);
+    fseek(f, 0, SEEK_SET);
+
+    if (length <= 0)
+    {
+        printf("File is empty or error reading size\n");
+        fclose(f);
+        return NULL;
+    }
+
+    char* buffer = malloc(length + 1);
+    if (!buffer)
+    {
+        perror("malloc failed");
+        fclose(f);
+        return NULL;
+    }
+
+    size_t readBytes = fread(buffer, 1, length, f);
+    if (readBytes != (size_t)length)
+    {
+        printf("Warning: fread read %zu bytes, expected %ld\n", readBytes, length);
+    }
+
+    buffer[length] = '\0';
+    fclose(f);
+
+    return buffer;
 }

@@ -11,4 +11,7 @@ int json_write_to_file(const char* fileName, cJSON* jsonObject);
 bool file_exists(const char* fileName);
 bool file_delete(const char *fileName);
 
+/* Return value needs to be freed */
+char* file_read_to_string(const char* fileName);
+
 #endif
