@@ -51,12 +51,11 @@ char* http_get_status_code_string(int http_status_code)
  */
 bool http_create_response(uint8_t *buffer, uint32_t buffer_length, char *body, const HTTP_Status_Code http_status_code, uint32_t body_length, uint32_t *out_bytes_written_to_buffer, Http_Content_Type content_type){
     (void)buffer_length;
-    (void)http_status_code;
     /* TODO: (SS) Create our own sNprintf() func/lib */
     
     if (content_type == HTTP_CONTENT_TYPE_JSON)
     {
-        *out_bytes_written_to_buffer = sprintf((char*)buffer, "HTTP/1.1 200 OK\r\n"
+        *out_bytes_written_to_buffer = sprintf((char*)buffer, "HTTP/1.1 %s\r\n"
                         "Date: Mon, 10 Nov 2025 15:40:00 GMT\r\n"
                         "Server: Apache/2.4.41 (Ubuntu)\r\n"
                         "Content-Type: application/json; charset=UTF-8\r\n"
@@ -67,11 +66,11 @@ bool http_create_response(uint8_t *buffer, uint32_t buffer_length, char *body, c
                         "Connection: close\r\n"
                         "\r\n"
                         "%s"
-                        ,body_length, body);
+                        ,http_get_status_code_string(http_status_code),body_length, body);
     }
     else
     {
-        *out_bytes_written_to_buffer = sprintf((char*)buffer, "HTTP/1.1 200 OK\r\n"
+        *out_bytes_written_to_buffer = sprintf((char*)buffer, "HTTP/1.1 %s\r\n"
                         "Date: Mon, 10 Nov 2025 15:40:00 GMT\r\n"
                         "Server: Apache/2.4.41 (Ubuntu)\r\n"
                         "Content-Type: text/html; charset=UTF-8\r\n"
@@ -82,7 +81,7 @@ bool http_create_response(uint8_t *buffer, uint32_t buffer_length, char *body, c
                         "Connection: close\r\n"
                         "\r\n"
                         "%s"
-                        ,body_length, body);
+                        ,http_get_status_code_string(http_status_code), body_length, body);
     }
     
     
