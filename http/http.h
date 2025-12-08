@@ -14,7 +14,13 @@ typedef enum HTTP_Status_Code
 
 } HTTP_Status_Code;
 
-bool http_create_response(uint8_t *buffer, uint32_t buffer_length, const int http_status_code, char *body, uint32_t body_length, uint32_t *out_bytes_written_to_buffer);
+typedef enum
+{
+    HTTP_CONTENT_TYPE_HTML,
+    HTTP_CONTENT_TYPE_JSON
+} Http_Content_Type;
+
+bool http_create_response(uint8_t *buffer, uint32_t buffer_length, char *body, uint32_t body_length, uint32_t *out_bytes_written_to_buffer, Http_Content_Type content_type);
 
 
 #endif /* __HTTP_H__ */
