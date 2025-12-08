@@ -12,7 +12,6 @@ typedef struct
 
 typedef struct 
 {
-    char location[143];
     float temperature;
     char unit;
     char* condition;

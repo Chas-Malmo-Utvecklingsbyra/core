@@ -34,7 +34,7 @@ char* get_string_from_weathercode(int weather_code)
     return "No weathercode found, Contact: Chas Malmö Utvecklingsbyrå ASAP";
 }
 
-Weather_Response weather_get_data_from_json(char* json, char* locationiq_json)
+Weather_Response weather_get_data_from_json(char* json)
 {
     cJSON* parsed_json = cJSON_Parse(json);
 
@@ -57,38 +57,6 @@ Weather_Response weather_get_data_from_json(char* json, char* locationiq_json)
 
 
     Weather_Response response = {0};
-
-    cJSON* parsed_locationiq_json = cJSON_Parse(locationiq_json);
-    cJSON* address = cJSON_GetObjectItemCaseSensitive(parsed_locationiq_json, "address");
-    cJSON* country = cJSON_GetObjectItemCaseSensitive(address, "country");
-    cJSON* village = cJSON_GetObjectItemCaseSensitive(address, "village");
-    cJSON* town = cJSON_GetObjectItemCaseSensitive(address, "town");
-    cJSON* city = cJSON_GetObjectItemCaseSensitive(address, "city");
-    cJSON* county = cJSON_GetObjectItemCaseSensitive(address, "county");
-
-
-    if (village)
-    {
-        sprintf(response.location, "%s, %s", cJSON_GetStringValue(village), cJSON_GetStringValue(country));
-    }
-    else if (town)
-    {
-        sprintf(response.location, "%s, %s", cJSON_GetStringValue(town), cJSON_GetStringValue(country));
-    }
-    else if (city)
-    {
-        sprintf(response.location, "%s, %s", cJSON_GetStringValue(city), cJSON_GetStringValue(country));
-    }
-    else if (county)
-    {
-        sprintf(response.location, "%s, %s", cJSON_GetStringValue(county), cJSON_GetStringValue(country));
-    }
-    else
-    {
-        sprintf(response.location, "%s", "Unknown");
-    }
-
-    cJSON_Delete(parsed_locationiq_json);
 
     response.temperature = (float)cJSON_GetNumberValue(current_temperature_2m);
 
@@ -151,41 +119,31 @@ Weather_Response weather_get_data(const char* latitude, const char* longitude)
 
 
     char* http_resp_data = NULL;
-    char* http_locationiq_data = NULL;
     response.error = true;
 
     /* -4 for both %s */
     char* buffer = (char*)malloc(strlen(OPENMETEO_API_TEMPLATE) + strlen(latitude) + strlen(longitude) - 4 + 1);
 
-    Config_t* cfg = config_get_instance("settings.json");
-
-    char* location_buffer = (char*)malloc(strlen(LOCATIONIQ_API_TEMPLATE) + strlen(latitude) + strlen(longitude) + strlen(cfg->locationiq_access_token) - 6 + 1);
-
-    sprintf(location_buffer, LOCATIONIQ_API_TEMPLATE, cfg->locationiq_access_token, latitude, longitude);
     sprintf(buffer, OPENMETEO_API_TEMPLATE, latitude, longitude);
 
-    if (http_get(buffer, &http_resp_data, NULL) == HTTP_ERROR_FAILED_TO_PERFORM || http_get(location_buffer, &http_locationiq_data, NULL) == HTTP_ERROR_FAILED_TO_PERFORM)
+    if (http_get(buffer, &http_resp_data, NULL) == HTTP_ERROR_FAILED_TO_PERFORM)
     {
         printf("Http_Perform failed in weather_get_data\n");
-        free(location_buffer);
         free(buffer);
         return response;
     }
 
-    if (http_resp_data == NULL || http_locationiq_data == NULL)
+    if (http_resp_data == NULL)
     {
         printf("response from http_get is NULL\n");
-        free(location_buffer);
         free(buffer);
         return response;
     }
 
-    response = weather_get_data_from_json(http_resp_data, http_locationiq_data);
+    response = weather_get_data_from_json(http_resp_data);
 
     free(http_resp_data);
-    free(http_locationiq_data);
     free(buffer);
-    free(location_buffer);
     response.error = false;
     return response;
 }
@@ -193,7 +151,6 @@ Weather_Response weather_get_data(const char* latitude, const char* longitude)
 char* weather_convert_response_to_json(Weather_Response* response)
 {
     cJSON* root = cJSON_CreateObject();
-    cJSON_AddStringToObject(root, "location", response->location);
     cJSON_AddNumberToObject(root, "temperature", response->temperature, true);
     cJSON_AddStringToObject(root, "unit", &response->unit);
     cJSON_AddStringToObject(root, "condition", response->condition);
