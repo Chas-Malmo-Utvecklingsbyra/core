@@ -20,7 +20,7 @@ typedef enum
     HTTP_CONTENT_TYPE_JSON
 } Http_Content_Type;
 
-bool http_create_response(uint8_t *buffer, uint32_t buffer_length, char *body, uint32_t body_length, uint32_t *out_bytes_written_to_buffer, Http_Content_Type content_type);
+bool http_create_response(uint8_t *buffer, uint32_t buffer_length, char *body, const HTTP_Status_Code http_status_code, uint32_t body_length, uint32_t *out_bytes_written_to_buffer, Http_Content_Type content_type);
 
 
 #endif /* __HTTP_H__ */

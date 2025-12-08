@@ -49,8 +49,9 @@ char* http_get_status_code_string(int http_status_code)
  * @param out_bytes_written_to_buffer Pointer to store the number of bytes written to the buffer
  * @return true if the response was created successfully
  */
-bool http_create_response(uint8_t *buffer, uint32_t buffer_length, char *body, uint32_t body_length, uint32_t *out_bytes_written_to_buffer, Http_Content_Type content_type){
+bool http_create_response(uint8_t *buffer, uint32_t buffer_length, char *body, const HTTP_Status_Code http_status_code, uint32_t body_length, uint32_t *out_bytes_written_to_buffer, Http_Content_Type content_type){
     (void)buffer_length;
+    (void)http_status_code;
     /* TODO: (SS) Create our own sNprintf() func/lib */
     
     if (content_type == HTTP_CONTENT_TYPE_JSON)
