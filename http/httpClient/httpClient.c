@@ -4,11 +4,13 @@
 #include <string.h>
 #include <stdint.h>
 #include "../../utils/min.h"
+#include "../../http/parser.h"
 
 /* ======================== CALLBACKS ======================== */
 void HTTP_TCP_Client_Callback_On_Connect(TCP_Client *client);
 void HTTP_TCP_Client_Callback_On_Disconnect (TCP_Client *client);
 void HTTP_TCP_Client_Callback_On_Received_Bytes_From_Server (TCP_Client *client, const uint8_t *buffer, const uint32_t buffer_size);
+void HTTP_TCP_Client_Callback_On_Full_Request (TCP_Client *client, Http_Request *request);
 void HTTP_TCP_Client_Callback_On_Error (TCP_Client *client, TCP_Client_Result error);
 
 
@@ -63,7 +65,7 @@ int HTTPClient_Initiate(HTTPClient* _Client)
 	_Client->buffer = NULL;
     memset(_Client->inbuffer, 0, sizeof(_Client->inbuffer));
     
-    TCP_Client_Result tcp_client_result = tcp_client_init(&_Client->tcp_client, (void*)_Client, HTTP_TCP_Client_Callback_On_Received_Bytes_From_Server, HTTP_TCP_Client_Callback_On_Connect, HTTP_TCP_Client_Callback_On_Disconnect, HTTP_TCP_Client_Callback_On_Error);
+    TCP_Client_Result tcp_client_result = tcp_client_init(&_Client->tcp_client, (void*)_Client, HTTP_TCP_Client_Callback_On_Received_Bytes_From_Server, HTTP_TCP_Client_Callback_On_Full_Request, HTTP_TCP_Client_Callback_On_Connect, HTTP_TCP_Client_Callback_On_Disconnect, HTTP_TCP_Client_Callback_On_Error);
 	if(tcp_client_result != TCP_Client_Result_OK){
         printf("TCP client init Error: %d\n", tcp_client_result);
         return -1;
@@ -117,6 +119,12 @@ void HTTP_TCP_Client_Callback_On_Received_Bytes_From_Server (TCP_Client *client,
     
     memcpy(http_client->inbuffer, buffer, min_uint32(sizeof(http_client->inbuffer), buffer_size));
     http_client->state = HTTPClient_State_Close;
+}
+
+void HTTP_TCP_Client_Callback_On_Full_Request (TCP_Client *client, Http_Request *request){
+    (void)client;
+
+    printf("Received full request: %s %s\n", Http_Request_Get_Method_String(request), request->start_line.path);    
 }
 
 void HTTP_TCP_Client_Callback_On_Error (TCP_Client *client, TCP_Client_Result error){

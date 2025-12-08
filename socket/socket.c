@@ -14,6 +14,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <errno.h>
 
 #include "socket.h"
 #include "../utils/clock_monotonic.h"
@@ -100,66 +101,86 @@ Socket_Result socket_close(Socket *socket){
 /* Tries to read (at most) 'buffer_size' bytes from the socket's 'file_descriptor' adds them to 'buffer'. remove the timeout, zero friction implementation please!*/
 Socket_Result socket_read(Socket *socket, uint8_t *buffer, const uint32_t buffer_size, int* out_TotalBytesRead) {
     
-	int totalBytesRead = 0;
+    *out_TotalBytesRead = 0;
 
 #ifdef _WIN32
-    int bytesRead = recv(
-        socket->file_descriptor,
-        &buffer[totalBytesRead],
-        buffer_size - totalBytesRead,
-        0
-    );
-#else
-    int bytesRead = recv(
-        socket->file_descriptor,
-        &buffer[totalBytesRead],
-        buffer_size - totalBytesRead,
-        MSG_DONTWAIT
-    );
-#endif
-
-    if(bytesRead <= 0) {
-#ifdef _WIN32
-        if(WSAGetLastError() == WSAEWOULDBLOCK){
-            return Socket_Result_Nothing_Read;    
+    int bytesRead = recv(socket->file_descriptor, buffer, buffer_size, 0);
+    if(bytesRead < 0){
+        int err = WSAGetLastError();
+        if(err == WSAEWOULDBLOCK){
+            return Socket_Result_Nothing_Read;
         }
+        return socket_result_error;
+    }
 #else
-        return Socket_Result_Nothing_Read;   
-#endif
-        return Socket_Result_Nothing_Read;
+    int bytesRead = recv(socket->file_descriptor, buffer, buffer_size, MSG_DONTWAIT);
+    if(bytesRead < 0)
+    {
+        if(errno == EINTR || errno == EAGAIN || errno == EWOULDBLOCK)
+        {
+            return Socket_Result_Nothing_Read;
+        }         
+        return socket_result_error;
+    }
+#endif         
+
+    if(bytesRead == 0){
+        return socket_result_connection_closed;
     }
 
-    *(out_TotalBytesRead) = bytesRead;
+    *out_TotalBytesRead = bytesRead;
+
     return Socket_Result_OK;
 }
 
 /* Tries to write 'buffer_size' bytes from 'buffer' to the socket's 'file_descriptor'. */
 Socket_Result socket_write(Socket *socket, const uint8_t *buffer, const uint32_t buffer_size, uint32_t *out_bytes_sent) {
-        
+
+    assert(socket != NULL);
+    assert(buffer != NULL);
+    assert(buffer_size > 0);
+    assert(out_bytes_sent != NULL);
+
     int bytesSent = 0;
 
 #ifdef _WIN32
     bytesSent = send(socket->file_descriptor, &buffer[0], buffer_size, 0);
-#else
-    bytesSent = send(socket->file_descriptor, &buffer[0], buffer_size, MSG_NOSIGNAL);
-#endif
-    
-    if(bytesSent > 0)
+    if(bytesSent < 0)
     {
-        *out_bytes_sent = (uint32_t)bytesSent;
-        return Socket_Result_OK;
+        int err = WSAGetLastError();
+        if(err == WSAEWOULDBLOCK){
+            *out_bytes_sent = 0;
+            return Socket_Result_Nothing_Written_Yet;
+        } else {
+            *out_bytes_sent = 0;
+            return socket_result_error_socket_write;
+        }
     }
+#else
+    bytesSent = send(socket->file_descriptor, &buffer[0], buffer_size, MSG_NOSIGNAL | MSG_DONTWAIT);
+    if(bytesSent < 0)
+    {
+        if(errno == EAGAIN || errno == EWOULDBLOCK){
+            *out_bytes_sent = 0;
+            return Socket_Result_Nothing_Written_Yet;
+        } else {
+            *out_bytes_sent = 0;
+            return socket_result_error_socket_write;
+        }
+    }
+#endif
     
     /* TODO: (PR) verifiera att buffer ej är NULL
     verifiera att buffer size är större än 0
     verifiera att socket inte ät NULL
     */
     if (bytesSent == 0){
+        *out_bytes_sent = 0;
         return socket_result_connection_closed;
     }
 
-    *out_bytes_sent = 0;
+    *out_bytes_sent = (uint32_t)bytesSent;
     
-    return Socket_Result_Fail_Write_Timeout; /* TODO: Replace with better enum */
+    return Socket_Result_OK;
 }
 

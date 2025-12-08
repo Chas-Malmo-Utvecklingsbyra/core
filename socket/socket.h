@@ -26,9 +26,12 @@ typedef enum {
     Socket_Result_Connection_Failed,
     Socket_Result_Nothing_Read,
     Socket_Result_OK_Something_Read,
+    Socket_Result_Nothing_Written_Yet,
     Socket_Result_OK_Write_Success,
     Socket_Result_Fail_Write_Timeout,
-    socket_result_connection_closed
+    socket_result_connection_closed,
+    socket_result_error,
+    socket_result_error_socket_write,
 
     /* ... */
 } Socket_Result;
