@@ -111,7 +111,7 @@ Weather_Response weather_get_data(const char* latitude, const char* longitude)
         return response;
     }
 
-    if (longitude_double < -90.0 || longitude_double > 90.0)
+    if (longitude_double < -180.0 || longitude_double > 180.0)
     {
         response.error = true;
         return response;
