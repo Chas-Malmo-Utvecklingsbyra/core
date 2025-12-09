@@ -16,7 +16,7 @@ typedef struct TCP_Server_Client TCP_Server_Client;
 typedef void (*TCP_Server_Callback_On_Recieved_Bytes_From_Client)(TCP_Server *server, TCP_Server_Client *client, const uint8_t *buffer, const uint32_t buffer_size);
 
 #ifndef TCP_MAX_CLIENT_BUFFER_SIZE
-    #define TCP_MAX_CLIENT_BUFFER_SIZE 1024
+    #define TCP_MAX_CLIENT_BUFFER_SIZE 2048
 #endif
 
 struct TCP_Server_Client {

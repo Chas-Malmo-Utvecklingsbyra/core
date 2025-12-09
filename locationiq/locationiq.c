@@ -28,9 +28,15 @@ size_t write_chunk(void* data, size_t item_size, size_t nmemb, void* user_data)
 
 char* locationiq_api_call(const char* location)
 {
+    Config_t* cfg = config_get_instance(NULL);
+    if (cfg == NULL || cfg->locationiq_access_token == NULL)
+    {
+        printf("Error: Config not initialized or LocationIQ access token not configured\n");
+        return NULL;
+    }
     char url[256];
     
-    sprintf(url, "https://eu1.locationiq.com/v1/search?key=%s&q=%s&format=json", LOCATIONIQ_ACCESS_TOKEN, location);
+    sprintf(url, "https://eu1.locationiq.com/v1/search?key=%s&q=%s&format=json", cfg->locationiq_access_token, location);
 
     CURL* curl = curl_easy_init();
     CURLcode result;
