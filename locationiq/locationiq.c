@@ -26,12 +26,17 @@ size_t write_chunk(void* data, size_t item_size, size_t nmemb, void* user_data)
     return real_size;
 }
 
-char* locationiq_api_call(const char* location)
+char* locationiq_api_call(const char* location, int limit)
 {
     char url[256];
-    
-    sprintf(url, "https://eu1.locationiq.com/v1/search?key=%s&q=%s&format=json", LOCATIONIQ_ACCESS_TOKEN, location);
 
+    sprintf(url, "https://eu1.locationiq.com/v1/search?key=%s&q=%s&format=json&limit=%d", config_get_instance(NULL)->locationiq_access_token, location, limit);
+    
+    if (config_get_instance(NULL)->config_debug)
+    {
+        printf("LocationIQ API URL: %s\n", url);
+    }
+    
     CURL* curl = curl_easy_init();
     CURLcode result;
     if (curl == NULL)
@@ -69,7 +74,11 @@ char* locationiq_api_call(const char* location)
 
 int locationiq_get_coordinates(Coordinates* coords, const char* location)
 {   
-    char* json_string = locationiq_api_call(location);
+    char* json_string = locationiq_api_call(location, 1); /* limit set to 1 for single result */
+    if (json_string == NULL)
+    {
+        return LOCATIONIQ_RESULT_ERROR;
+    }
 
     cJSON* cjson_parsed = cJSON_Parse(json_string);
     cJSON* cjson_selector = cjson_parsed;

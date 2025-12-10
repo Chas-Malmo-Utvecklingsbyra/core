@@ -162,6 +162,9 @@ char* weather_convert_response_to_json(Weather_Response* response)
     cJSON_AddStringToObject(root, "sunrise", response->sunrise);
     cJSON_AddStringToObject(root, "sunset", response->sunset);
     cJSON_AddStringToObject(root, "icon_url", response->icon_url);
-
-    return cJSON_Print(root);
+    
+    char *json_string = cJSON_Print(root);
+    cJSON_Delete(root);
+    
+    return json_string;
 }
