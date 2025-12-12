@@ -149,16 +149,51 @@ void HTTP_TCP_Client_Callback_On_Error (TCP_Client *client, TCP_Client_Result er
     printf("[CLIENT] ERROR!\nI encountered the following error: %d\n", error);
 }
 
+void HTTPClient_Reset(HTTPClient *_Client)
+{
+    if(_Client->buffer != NULL){
+        free(_Client->buffer);
+        _Client->buffer = NULL;
+    }
+    
+    _Client->bufferPtr = NULL;
+    memset(_Client->inbuffer, 0, sizeof(_Client->inbuffer));
+    
+    _Client->lat = 0.0f;
+    _Client->lon = 0.0f;
+    _Client->done = false;
 
+    _Client->state = HTTPClient_State_Init;
 
+    tcp_client_disconnect(&_Client->tcp_client);
 
-
+    _Client->tcp_client.server.incoming_buffer_bytes = 0;
+    _Client->tcp_client.server.outgoing_buffer_bytes = 0;
+    memset(_Client->tcp_client.server.incoming_buffer, 0, TCP_CLIENT_RECEIVE_BUFFER_SIZE);
+    memset(_Client->tcp_client.server.outgoing_buffer, 0, TCP_CLIENT_OUTGOING_BUFFER_SIZE);
+    
+    _Client->tcp_client.server.close_requested = false;
+}
 
 void HTTPClient_Dispose(HTTPClient* _Client)
 {
+	if(_Client->buffer != NULL){
+        free(_Client->buffer);
+        _Client->buffer = NULL;
+    }
 
-	if(_Client->buffer != NULL)
-		free(_Client->buffer); 
+    tcp_client_disconnect(&_Client->tcp_client);
 
+    memset(_Client->inbuffer, 0, sizeof(_Client->inbuffer));
+    _Client->bufferPtr = NULL;
+
+    _Client->lat = 0.0f;
+    _Client->lon = 0.0f;
+    _Client->done = false;
+
+    _Client->state = HTTPClient_State_Init;
+
+    _Client->tcp_client.server.incoming_buffer_bytes = 0;
+    _Client->tcp_client.server.outgoing_buffer_bytes = 0;
+    
 }
-

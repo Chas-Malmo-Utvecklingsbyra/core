@@ -32,7 +32,7 @@ struct HTTPClient
 	float lat;
 	float lon;
 
-	char city_name;
+	char city_name[64];
 
     TCP_Client tcp_client; 
     HTTPClient_State state;
@@ -49,6 +49,8 @@ int HTTPClient_Initiate(HTTPClient* _Client, HTTPClient_Callback_On_Received_Ful
 int HTTPClient_GET(HTTPClient* _Client, const char* _URL, const char *route);
 
 bool HTTPClient_Work(void* _Context);
+
+void HTTPClient_Reset(HTTPClient *_Client);
 
 void HTTPClient_Dispose(HTTPClient* _Client);
 
