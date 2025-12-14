@@ -104,8 +104,17 @@ int locationiq_get_coordinates(Coordinates* coords, const char* location)
     /* This still breaks if user doesn't input numbers but it'll have to do for now. */
     while (valid_selection != 1)
     {
-        printf("\nEnter a number to select a location from the list above: ");
-        scanf("%d", &user_selection);
+        printf("\nEnter a number to select a location from the list above (or 0 to search for another location): ");
+        if(scanf("%d", &user_selection) != 1){
+            while(getchar() != '\n');
+            continue;
+        }
+
+        if(user_selection == 0){
+            cJSON_Delete(cjson_parsed);
+            free(json_string);
+            return LOCATIONIQ_RESULT_USER_ABORTED;
+        }
 
         if (user_selection > 0 && user_selection < array_length)
         {
