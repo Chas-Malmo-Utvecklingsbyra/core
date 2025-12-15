@@ -206,6 +206,8 @@ TCP_Server_Result tcp_server_send(TCP_Server *server){
 
 TCP_Server_Result tcp_server_accept(TCP_Server *server){
     /* printf("Hello from ACCEPT\n"); */
+
+	/* Make into function - try_accept_new_socket */
     int cfd = accept(server->socket.file_descriptor, NULL, NULL);
 	if (cfd < 0)
 	{
@@ -215,13 +217,17 @@ TCP_Server_Result tcp_server_accept(TCP_Server *server){
 		perror("accept");
 		return -1;
 	}
+	/* end */
 
-    
+	/* set potential socket */
+
+	/* set_socket_blocking */
 	int flags = fcntl(cfd, F_GETFL, 0);
 	if (flags < 0)
 		return -1;
 	fcntl(cfd, F_SETFL, flags | O_NONBLOCK);
-	
+	/* End */
+
 	/* Find free socket */
 	uint32_t i;
 	for (i = 0; i < TCP_MAX_CLIENTS_PER_SERVER; i++) {
@@ -231,7 +237,9 @@ TCP_Server_Result tcp_server_accept(TCP_Server *server){
 			/* client->unique_id = i; */
 			server->client_count++;
 			client->in_use = true;
+			/* socket_init */
 			client->socket.file_descriptor = cfd;
+			/* end */
 			client->timestamp = SystemMonotonicMS();
 			printf("Ny klient accepterad (FD: %d, index: %i/%i)\n", client->socket.file_descriptor, i+1, TCP_MAX_CLIENTS_PER_SERVER);
 			return TCP_Server_Result_OK;
@@ -239,6 +247,7 @@ TCP_Server_Result tcp_server_accept(TCP_Server *server){
 	}
 
 	/* FULL */
+	/* socket_close */
 	close(cfd);
 	printf("Max klienter, anslutning avvisad\n");
 
