@@ -29,15 +29,7 @@ TCP_Server_Result tcp_server_timeout_checker(TCP_Server *server);
 
 /*  initiate server 
 	provide port in range of 0 to 65535 */
-TCP_Server_Result tcp_server_init(TCP_Server *server, int port, TCP_Server_Callback_On_Recieved_Bytes_From_Client on_received_bytes_from_client) {
-
-	/* port more customizable , port passed as int now stored as int- and string-port in struct*/
-	server->portInteger = port;
-	char* port_buffer = malloc(6);
-	if(port_buffer == NULL)
-		return TCP_Server_Result_Error;
-	sprintf(port_buffer, "%d", port);
-	server->portString = port_buffer; /* TODO: SS - Make this customizable. */
+TCP_Server_Result tcp_server_init(TCP_Server *server, TCP_Server_Callback_On_Recieved_Bytes_From_Client on_received_bytes_from_client) {
 	
 	/* moved from tcp_server_start and stored in TCP_Server struct */
 	struct addrinfo* hints = malloc(sizeof(struct addrinfo));
@@ -58,7 +50,7 @@ TCP_Server_Result tcp_server_init(TCP_Server *server, int port, TCP_Server_Callb
 	/* moved from _start*/
 	int i;
 	for (i = 0; i < TCP_MAX_CLIENTS_PER_SERVER; i++)
-		server->clients[i].in_use = false;
+		tcp_server_client_init(&server->clients[i]);
 	
 	/* reset tracking counters */
 	server->client_count = 0;
@@ -67,13 +59,17 @@ TCP_Server_Result tcp_server_init(TCP_Server *server, int port, TCP_Server_Callb
 	return TCP_Server_Result_OK;
 }
 
-TCP_Server_Result tcp_server_start(TCP_Server *server){
+TCP_Server_Result tcp_server_start(TCP_Server *server, uint16_t port){
 	/* TODO: SS - Move some of the things from here to tcp_server_init(..). */
-	
+	server->port = port;
+
     struct addrinfo *res = NULL;
 
-	/* const char *port_as_string = "8080"; TEMP: SS - This should not be hardcoded. */
-	if (getaddrinfo(NULL, server->portString, server->hints, &res) != 0)
+	char port_buf[6];
+	memset(port_buf, 0, sizeof(port_buf));
+	snprintf(port_buf, sizeof(port_buf), "%d", server->port);
+
+	if (getaddrinfo(NULL, port_buf, server->hints, &res) != 0)
 		return TCP_Server_Result_Error;
 
 	int fd = -1;
@@ -119,7 +115,7 @@ TCP_Server_Result tcp_server_start(TCP_Server *server){
 
 	server->socket.file_descriptor = (uint32_t)fd;
 
-	printf("Server lyssnar på port %s\n", server->portString);
+	printf("Server listening to %d\n", port);
 
     return TCP_Server_Result_OK;
 }
@@ -163,43 +159,10 @@ TCP_Server_Result tcp_server_work(TCP_Server *server){
 }
 
 TCP_Server_Result tcp_server_send(TCP_Server *server){
-	/* printf("Hello from SEND\n"); */
 	size_t i;
 	for (i = 0; i < server->client_count; i++)
 	{
-		/* printf("%li\n", i); */
-		TCP_Server_Client *client = &server->clients[i];
-
-		if (client->outgoing_buffer_amount_of_bytes == 0)
-		{
-			continue;
-		}
-
-		uint32_t totalBytesSent = 0;
-
-		Socket_Result write_result = socket_write(&client->socket, client->outgoing_buffer, client->outgoing_buffer_amount_of_bytes, &totalBytesSent);
-
-		if (write_result == socket_result_connection_closed)
-		{
-			printf("%s, Socket closed FD: %i\n", __FILE__, client->socket.file_descriptor);
-			continue;
-		}
-
-		assert(totalBytesSent <= client->outgoing_buffer_amount_of_bytes);
-
-		// printf("total bytes send: %u\n", totalBytesSent);
-		/* TODO: 1 2 3 4 5 6 7 8 */
-		uint32_t y;
-		for (y = 0; y < client->outgoing_buffer_amount_of_bytes - totalBytesSent; y++)
-		{
-			client->outgoing_buffer[y] = client->outgoing_buffer[totalBytesSent + y];
-		}
-		client->outgoing_buffer[totalBytesSent + 1] = '\0';
-
-		client->outgoing_buffer_amount_of_bytes -= totalBytesSent;
-
-		//printf("Buffer amount of bytes: %u\n", client->outgoing_buffer_amount_of_bytes);
-			/* server->on_received_bytes_from_client(server, client, &client->receive_buffer[0], totalBytesRead); */
+		tcp_server_client_send(&server->clients[i]);
 	}
 
 	return TCP_Server_Result_OK;
@@ -207,7 +170,6 @@ TCP_Server_Result tcp_server_send(TCP_Server *server){
 }
 
 TCP_Server_Result tcp_server_accept(TCP_Server *server){
-    /* printf("Hello from ACCEPT\n"); */
 
 	/* Make into function - try_accept_new_socket */
     int cfd = accept(server->socket.file_descriptor, NULL, NULL);
@@ -254,7 +216,6 @@ TCP_Server_Result tcp_server_accept(TCP_Server *server){
 
 TCP_Server_Result tcp_server_read(TCP_Server *server)
 {
-	/* printf("Hello from READ\n"); */
 	size_t i;
 	for (i = 0; i < server->client_count; i++)
 	{
@@ -283,7 +244,6 @@ TCP_Server_Result tcp_server_send_to_client(TCP_Server *server, TCP_Server_Clien
 	(void)server;
 
 	uint32_t outgoing_capacity_remaining = sizeof(client->outgoing_buffer) - client->outgoing_buffer_amount_of_bytes; 
-	/* client->outgoing_buffer */
 
 
 	if (outgoing_capacity_remaining < buffer_size){
@@ -295,10 +255,6 @@ TCP_Server_Result tcp_server_send_to_client(TCP_Server *server, TCP_Server_Clien
 	memcpy(&client->outgoing_buffer[client->outgoing_buffer_amount_of_bytes], buffer, amount_of_bytes_to_send);
 	
 	client->outgoing_buffer_amount_of_bytes += amount_of_bytes_to_send;
-	
-	
-	/* socket_write(&client->socket, buffer, buffer_size, &bytes_sent); */
-
 
 	return TCP_Server_Result_OK;
 }
@@ -318,9 +274,7 @@ TCP_Server_Result tcp_server_dispose(TCP_Server *server){
 	}
 
 	close(server->socket.file_descriptor);
-	/* freeaddrinfo(server->hints); */	/* created a double-free when I ran the TCP-client (PL) */
 	free(server->hints);
-	free(server->portString);
 
     return TCP_Server_Result_OK;
 }
@@ -346,8 +300,6 @@ TCP_Server_Result tcp_server_close_connection(TCP_Server *server){
 
 		if (tcp_server_client_should_close(&server->clients[i]))
 		{
-			/* client instance that should be closed is replaced with the last client instance*/
-			/* todo: fix this */
 			server->clients[i] = server->clients[server->client_count-1];
 			memset(&server->clients[server->client_count-1], 0, sizeof(TCP_Server_Client));
 			server->client_count--;

@@ -17,8 +17,7 @@ typedef void (*TCP_Server_Callback_On_Recieved_Bytes_From_Client)(TCP_Server *se
 
 struct TCP_Server {
     Socket socket;
-    char* portString;
-    int portInteger;
+    uint16_t port;
     struct addrinfo* hints;
 
     TCP_Server_Client clients[TCP_MAX_CLIENTS_PER_SERVER];
@@ -42,9 +41,9 @@ typedef enum {
     /* ... */
 } TCP_Server_Result;
 
-TCP_Server_Result tcp_server_init(TCP_Server *server, int port, TCP_Server_Callback_On_Recieved_Bytes_From_Client on_received_bytes_from_client);
+TCP_Server_Result tcp_server_init(TCP_Server *server, TCP_Server_Callback_On_Recieved_Bytes_From_Client on_received_bytes_from_client);
 
-TCP_Server_Result tcp_server_start(TCP_Server *server);
+TCP_Server_Result tcp_server_start(TCP_Server *server, uint16_t port);
 
 TCP_Server_Result tcp_server_work(TCP_Server *server);
 

@@ -68,15 +68,14 @@ char* http_get_content_type_string(int content_type)
  * @return true if the response was created successfully
  */
 bool http_create_response(uint8_t *buffer, uint32_t buffer_length, char *body, const HTTP_Status_Code http_status_code, uint32_t body_length, uint32_t *out_bytes_written_to_buffer, Http_Content_Type content_type){
-    (void)buffer_length;
     /* TODO: (SS) Create our own sNprintf() func/lib */
 
-    *out_bytes_written_to_buffer = sprintf((char*)buffer, "HTTP/1.1 %s\r\n"
-    "Date: Mon, 10 Nov 2025 15:40:00 GMT\r\n"
-    "Server: Apache/2.4.41 (Ubuntu)\r\n"
+    *out_bytes_written_to_buffer = snprintf((char*)buffer, buffer_length, "HTTP/1.1 %s\r\n"
+    "Date: Mon, 10 Nov 2025 15:40:00 GMT\r\n" /* TODO: HW - Use actual time */
+    "Server: Apache/2.4.41 (Ubuntu)\r\n" /* TODO: HW - Use actual server name/type */
     "Content-Type: %s\r\n"
     "Access-Control-Allow-Origin: *\r\n"
-    "Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n"
+    "Access-Control-Allow-Methods: GET, OPTIONS\r\n"
     "Access-Control-Allow-Headers: Content-Type, Content-Length\r\n"
     "Content-Length: %d\r\n"
     "Connection: close\r\n"
