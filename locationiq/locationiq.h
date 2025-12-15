@@ -16,6 +16,7 @@ typedef enum
 {
     LOCATIONIQ_RESULT_ERROR = -1,
     LOCATIONIQ_RESULT_OK = 0,
+    LOCATIONIQ_RESULT_USER_ABORTED = 1,
 } LOCATIONIQ_RESULT;
 
 typedef struct {

@@ -36,12 +36,8 @@ typedef enum {
     /* ... */
 } Socket_Result;
 
-bool socket_global_init(void);
-
-void socket_global_cleanup(void);
-
 /* Tries to bind the socket to the port. */
-Socket_Result socket_open(const uint32_t port, Socket *out_socket);
+Socket_Result socket_open_client(const uint32_t port, const char* ip_string, Socket *out_socket);
 
 /* Tries to close the socket. */
 Socket_Result socket_close(Socket *socket);

@@ -540,7 +540,6 @@ TCP_Client_Result tcp_client_disconnect(TCP_Client *client){
 
     client->server.connection_state = TCP_Client_Connection_State_Disconnected;
     client->server.outgoing_buffer_bytes = 0;
-    /* client->on_disconnect_callback(client); --- Orsakade dubbel-print då callbacken också triggas inuti tcp_client_work */
     client->server.close_requested = true;
 
     return TCP_Client_Result_OK;    
