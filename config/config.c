@@ -45,38 +45,6 @@ void config_dispose(Config_t *cfg)
         free(cfg->locationiq_access_token);
         cfg->locationiq_access_token = NULL;
     }
-    if(cfg->allowed_routes)
-    {
-        for(size_t i = 0; i < cfg->allowed_routes_count; i++)
-        {
-            if(cfg->allowed_routes[i].route)
-            {
-                free(cfg->allowed_routes[i].route);
-                cfg->allowed_routes[i].route = NULL;
-            }
-            if(cfg->allowed_routes[i].method)
-            {
-                free(cfg->allowed_routes[i].method);
-                cfg->allowed_routes[i].method = NULL;
-            }
-            if(cfg->allowed_routes[i].args)
-            {
-                for(size_t j = 0; j < cfg->allowed_routes[i].args_count; j++)
-                {
-                    if(cfg->allowed_routes[i].args[j])
-                    {
-                        free(cfg->allowed_routes[i].args[j]);
-                        cfg->allowed_routes[i].args[j] = NULL;
-                    }
-                }
-                free(cfg->allowed_routes[i].args);
-                cfg->allowed_routes[i].args = NULL;
-            }
-        }
-        free(cfg->allowed_routes);
-        cfg->allowed_routes = NULL;
-        cfg->allowed_routes_count = 0;
-    }
     cfg->config_server_port = 0;
     cfg->config_debug = false;
     cfg->config_max_connections = 0;
