@@ -20,31 +20,14 @@
 #include "../utils/clock_monotonic.h"
 
 /* TODO: SS - Support different operating systems (and architectures(?)). */
-bool socket_global_init(void){
-#ifdef _WIN32
-    WSADATA wsa;
-    if(WSAStartup(MAKEWORD(2,2), &wsa) != 0){
-        return false;
-    }
-    winsock_started = true;
-#endif
-    return true;
-}
 
-void socket_global_cleanup(void){
-#ifdef _WIN32
-    if(winsock_started){
-        WSACleanup();
-    }
-#endif
-}
 
 /* clock monotonic moved to utils directory */
 
 
 
 /* Tries to bind the socket to the port. */
-Socket_Result socket_open(const uint32_t port, Socket *out_socket) {
+Socket_Result socket_open_client(const uint32_t port, const char* ip_string, Socket *out_socket) {
 
     socket_fd_t fd =
 #ifdef _WIN32
@@ -65,7 +48,7 @@ Socket_Result socket_open(const uint32_t port, Socket *out_socket) {
     serv_addr.sin_port = htons(port);
 
     /* 2. Konvertera IP-adress */
-    if (inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr) <= 0) {
+    if (inet_pton(AF_INET, ip_string, &serv_addr.sin_addr) <= 0) {
         perror("Invalid address/Address not supported");
         return Socket_Result_Invalid_Address;
     }
