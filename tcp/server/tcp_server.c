@@ -29,10 +29,12 @@ TCP_Server_Result tcp_server_timeout_checker(TCP_Server *server);
 
 /*  initiate server 
 	provide port in range of 0 to 65535 */
-TCP_Server_Result tcp_server_init(TCP_Server *server, TCP_Server_Callback_On_Recieved_Bytes_From_Client on_received_bytes_from_client) {
-	
+TCP_Server_Result tcp_server_init(TCP_Server *server, void *context,TCP_Server_Callback_On_Recieved_Bytes_From_Client on_received_bytes_from_client)
+{
+	server->context = context;
+
 	/* moved from tcp_server_start and stored in TCP_Server struct */
-	struct addrinfo* hints = malloc(sizeof(struct addrinfo));
+	struct addrinfo *hints = malloc(sizeof(struct addrinfo));
 	if (hints == NULL)
 	{
 		return TCP_Server_Result_Error;
@@ -59,7 +61,8 @@ TCP_Server_Result tcp_server_init(TCP_Server *server, TCP_Server_Callback_On_Rec
 	return TCP_Server_Result_OK;
 }
 
-TCP_Server_Result tcp_server_start(TCP_Server *server, uint16_t port){
+TCP_Server_Result tcp_server_start(TCP_Server *server, uint16_t port)
+{
 	/* TODO: SS - Move some of the things from here to tcp_server_init(..). */
 	server->port = port;
 
@@ -232,7 +235,7 @@ TCP_Server_Result tcp_server_read(TCP_Server *server)
 		}
 		if(totalBytesRead > 0)
 		{
-			server->on_received_bytes_from_client(server, client, &client->receive_buffer[0], totalBytesRead);
+			server->on_received_bytes_from_client(server->context, server, client, &client->receive_buffer[0], totalBytesRead);
 		}
 	}
 
