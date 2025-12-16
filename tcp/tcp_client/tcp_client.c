@@ -27,7 +27,7 @@ static TCP_Client_Result tcp_client_send_queued(TCP_Client *client);
 /* -----------------Helpers------------------- */
 
 void sleep_ms(int milliseconds){
-    usleep(milliseconds * 1000);
+    sleep(milliseconds / 1000); /* Linux takes seconds, Windows expects milliseconds. TODO: PL - Make abstraction (utility) */
 }
 
 static int find_headers_end(const uint8_t *buffer, uint32_t buffer_length)
