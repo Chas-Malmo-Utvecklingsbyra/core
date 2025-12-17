@@ -73,8 +73,6 @@ Http_Error http_initialize(Http* h)
  */
 Http_Error http_get(const char *url, char **response, const char *headers[])
 {
-    bool cfg_debug = config_get_instance(NULL)->config_debug;
-
     Http h;
     struct curl_slist *slist_headers = NULL;
     
@@ -91,17 +89,11 @@ Http_Error http_get(const char *url, char **response, const char *headers[])
     
     if (result == HTTP_ERROR_FAILED_TO_INITIALIZE)
     {
-        if (cfg_debug) 
-            printf("Http_Initialize failed in http_get\n");
-            
         return HTTP_ERROR_FAILED_TO_INITIALIZE;
     }
 
     if (h.curl == NULL)
     {
-        if (cfg_debug) 
-            printf("Curl failed to Initialize");
-            
         return HTTP_ERROR_FAILED_TO_INITIALIZE;
     }
 
@@ -116,22 +108,14 @@ Http_Error http_get(const char *url, char **response, const char *headers[])
     }
 
     CURLcode code = curl_easy_perform(h.curl);
-    
-    if (cfg_debug) 
-        printf("CURL perform returned code: %d\n", code);
 
     if (code != CURLE_OK)
     {
-        if (cfg_debug) 
-            printf("Curl failed to perform\n");
         return HTTP_ERROR_FAILED_TO_PERFORM;
     }
 
     if (http_response.data != NULL)
     {
-        if (cfg_debug)
-            printf("HTTP response data received (%d bytes):\n%s\n", http_response.size, http_response.data);
-            
         (*response) = strdup(http_response.data);
     }
 

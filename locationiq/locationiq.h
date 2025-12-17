@@ -3,9 +3,7 @@
 
 #include "../json/json.h"
 
-/*  This needs to be replaced with a LocationIQ access token.
-    Unsure how we want to handle that. */
-#define LOCATIONIQ_ACCESS_TOKEN "PUT VALID LOCATIONIQ TOKEN HERE"
+/* LOCATIONIQ_ACCESS_TOKEN replaced with config_get_instance(NULL)->locationiq_access_token */
 
 /*  Usage: Create a Coordinates struct and send it along with a const char* to locationiq_get_coordinates.
     If it finds places matching the string, it will display the options as a numbered list.
@@ -36,7 +34,17 @@ typedef struct
 } Response;
 
 size_t write_chunk(void* data, size_t item_size, size_t nmemb, void* user_data);
-char* locationiq_api_call(const char* location);
-int locationiq_get_coordinates(Coordinates* coords, const char* location);
+
+/**
+ * @brief Makes an API call to LocationIQ to search for a location.
+ *
+ * @param location The location query string.
+ * @param limit The maximum number of results to return (1-10).
+ * @return char* The raw JSON response from LocationIQ API, or NULL on failure.
+ *                The caller is responsible for freeing the returned string.
+ */
+char *locationiq_api_call(const char *location, int limit);
+
+int locationiq_get_coordinates(Coordinates *coords, const char *location);
 
 #endif

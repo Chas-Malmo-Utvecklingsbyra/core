@@ -3,20 +3,6 @@
 #include <string.h>
 #include <stdio.h>
 
-/* 
-"HTTP/1.1 200 OK\r\n"
-"Date: Mon, 10 Nov 2025 15:40:00 GMT\r\n"
-"Server: Apache/2.4.41 (Ubuntu)\r\n"
-"Content-Type: text/html; charset=UTF-8\r\n"
-"Content-Length: %d\r\n"
-"Connection: close\r\n\r\n"
-"<html>"
-"<head><title>Welcome</title></head>"
-"<body><h1>Hello, world!</h1></body>"
-"</html>"
-"\r\n"
- */
-
 /**
  * @brief Converts an HTTP status code integer to its corresponding string representation.
  * @param http_status_code The HTTP status code as an integer.
