@@ -5,7 +5,8 @@ ifndef OBJ_DIR
 $(error no OBJ_DIR specified)
 endif
 
-SRC_FILES := $(shell find $(SRC_DIR) -name "*.c")
+SRC_FILES := $(shell find . -name "*.c")
+SRC_FILES := $(filter-out ./tests/%,$(SRC_FILES))
 
 INCLUDE_PATHS :=
 
