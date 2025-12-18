@@ -422,7 +422,7 @@ TCP_Client_Result tcp_client_read(TCP_Client *client){
                 if(client->on_full_request_callback){
                     client->on_full_request_callback(client, request);
                 }
-                Http_Parser_Cleanup(request);
+                Http_Parser_Cleanup(&request);
                 free(request);
             } else {
                 if(client->on_received_callback){
