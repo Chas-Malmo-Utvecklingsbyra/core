@@ -12,8 +12,10 @@
 
 */
 
-void Http_Parser_Cleanup(Http_Request* request)
+void Http_Parser_Cleanup(Http_Request** requestPTR)
 {
+    Http_Request* request = *requestPTR;
+
     for (size_t i = 0; i < request->filled_to; i++)
     {
         if (request->request_lines == NULL)
@@ -35,6 +37,12 @@ void Http_Parser_Cleanup(Http_Request* request)
     if (request->data)
     {
         free(request->data);
+    }
+
+    if (requestPTR && *requestPTR)
+    {
+        free(*requestPTR);
+        *requestPTR = NULL;
     }
 }
 
@@ -167,6 +175,9 @@ Http_Request* Http_Parser_Parse(const char* buffer)
             printf("Key, Value: [%s][%s]\n", request_line.key, request_line.value);
 #endif
         }
+
+        free(duped);
+        duped = NULL;
 
         if (is_first_line)
         {

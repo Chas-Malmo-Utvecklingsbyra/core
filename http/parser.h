@@ -34,7 +34,7 @@ typedef struct
 
 
 Http_Request* Http_Parser_Parse(const char* buffer);
-void Http_Parser_Cleanup(Http_Request* request);
+void Http_Parser_Cleanup(Http_Request** requestPTR);
 char* Http_Request_Get_Value_From_Key(const Http_Request* request, const char* key);
 char* Http_Request_Get_Method_String(const Http_Request* request);
 
