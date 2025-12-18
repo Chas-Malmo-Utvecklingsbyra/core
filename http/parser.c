@@ -176,9 +176,6 @@ Http_Request* Http_Parser_Parse(const char* buffer)
 #endif
         }
 
-        free(duped);
-        duped = NULL;
-
         if (is_first_line)
         {
             char method[8] = {0};
@@ -199,6 +196,8 @@ Http_Request* Http_Parser_Parse(const char* buffer)
             else
             {
                 printf("Unsupported HTTP method\n");
+                free(duped);
+                duped = NULL;
                 return NULL; /*  */
             }
 
@@ -206,6 +205,8 @@ Http_Request* Http_Parser_Parse(const char* buffer)
             is_first_line = false;
         }
 
+        free(duped);
+        duped = NULL;
         if (line_start[0] == '\0') {
             has_found_body = true;
             break;
