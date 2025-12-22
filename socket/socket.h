@@ -20,18 +20,19 @@ typedef struct {
 } Socket;
 
 typedef enum {
-    Socket_Result_OK,
-    Socket_Result_Port_Already_Used,
-    Socket_Result_Invalid_Address,
-    Socket_Result_Connection_Failed,
-    Socket_Result_Nothing_Read,
-    Socket_Result_OK_Something_Read,
-    Socket_Result_Nothing_Written_Yet,
-    Socket_Result_OK_Write_Success,
-    Socket_Result_Fail_Write_Timeout,
-    socket_result_connection_closed,
-    socket_result_error,
-    socket_result_error_socket_write,
+    Socket_Result_OK = 0,
+    Socket_Result_Port_Already_Used = 1,
+    Socket_Result_Invalid_Address = 2,
+    Socket_Result_Connection_Failed = 3,
+    Socket_Result_Nothing_Read = 4,
+    Socket_Result_OK_Something_Read = 5,
+    Socket_Result_Nothing_Written_Yet = 6,
+    Socket_Result_OK_Write_Success = 7,
+    Socket_Result_Fail_Write_Timeout = 8,
+    socket_result_connection_closed = 9,
+    socket_result_error = 10,
+    socket_result_error_socket_write = 11,
+    Socket_Result_Failed_Fcntl = 12,
 
     /* ... */
 } Socket_Result;

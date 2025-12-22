@@ -26,10 +26,6 @@ static TCP_Client_Result tcp_client_send_queued(TCP_Client *client);
 
 /* -----------------Helpers------------------- */
 
-void sleep_ms(int milliseconds){
-    sleep(milliseconds / 1000); /* Linux takes seconds, Windows expects milliseconds. TODO: PL - Make abstraction (utility) */
-}
-
 static int find_headers_end(const uint8_t *buffer, uint32_t buffer_length)
 {
     if (buffer == NULL || buffer_length < 4) return -1;
@@ -93,8 +89,6 @@ TCP_Client_Result tcp_client_work(TCP_Client *client){
         }
         return TCP_Client_Result_Already_Working;
     }
-
-    /* printf("[DEBUG] outgoing bytes waiting: %u\n", client->server.outgoing_buffer_bytes); */
 
     switch(client->server.connection_state){
         
@@ -179,9 +173,7 @@ TCP_Client_Result tcp_client_work(TCP_Client *client){
                 if (send_result != TCP_Client_Result_OK && send_result != TCP_Client_Result_Nothing_Sent_Yet) {
                     return send_result;
                 }                  
-            }
-
-            
+            }            
 
             return TCP_Client_Result_OK;
         }
@@ -247,76 +239,21 @@ TCP_Client_Result tcp_client_connect(TCP_Client *client, const char *ip, int por
 
     assert(client != NULL);
     assert(ip != NULL);
-    assert(client->server.connection_state == TCP_Client_Connection_State_Connecting || client->server.connection_state == TCP_Client_Connection_State_Disconnected);
-    
+     
     if(client->server.connection_state == TCP_Client_Connection_State_Connected){
         return TCP_Client_Result_Already_Connected;
     }    
     
-    struct sockaddr_in addr;
-    memset(&addr, 0, sizeof(addr));
+    Socket_Result sock_res = socket_open_client(port, ip, &client->server.socket);
 
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons((uint16_t)port);
-
-    struct addrinfo hints;
-    struct addrinfo *responses = NULL;
-    char port_str[6];
-    int err;
-
-    memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_INET;
-    hints.ai_socktype = SOCK_STREAM;
-    snprintf(port_str, sizeof(port_str), "%d", port);
-
-    err = getaddrinfo(ip, port_str, &hints, &responses);
-    if(err != 0 || responses == NULL){
+    if(sock_res != Socket_Result_OK){
         if(client->on_error_callback){
-            client->on_error_callback(client, TCP_Client_Result_Error_Invalid_Address);
+            client->on_error_callback(client, TCP_Client_Result_Error_Connection_Failure);
         }
-        return TCP_Client_Result_Error_Invalid_Address;
+        return TCP_Client_Result_Error_Connection_Failure;
     }
 
-    struct sockaddr_in *ipv4 = (struct sockaddr_in *)responses->ai_addr;
-    addr.sin_family = AF_INET;
-    addr.sin_port = ipv4->sin_port;
-    addr.sin_addr = ipv4->sin_addr;
-
-    freeaddrinfo(responses);
-
-
-    int fd = socket(AF_INET, SOCK_STREAM, 0);
-    if(fd < 0){
-        if(client->on_error_callback){
-            client->on_error_callback(client, TCP_Client_Result_Error_Creating_Socket);
-        }
-        return TCP_Client_Result_Error_Creating_Socket;
-    }
-
-    int flags = fcntl(fd, F_GETFL, 0);
-	if (flags < 0){
-        close(fd);
-        if(client->on_error_callback){
-            client->on_error_callback(client, TCP_Client_Result_Error_Fcntl);
-        }
-		return TCP_Client_Result_Error_Fcntl;
-    }
-	fcntl(fd, F_SETFL, flags | O_NONBLOCK);
-
-    int res = connect(fd, (struct sockaddr *)&addr, sizeof(addr));
-    if(res < 0){ 
-        if(errno != EINPROGRESS){
-            close(fd);
-            if(client->on_error_callback){
-                client->on_error_callback(client, TCP_Client_Result_Error_Connection_Failure);
-            }
-            return TCP_Client_Result_Error_Connection_Failure;
-        }
-    }
-
-    client->server.socket.file_descriptor = (uint32_t)fd;
     client->server.connection_state = TCP_Client_Connection_State_Connecting;
-    client->server.outgoing_buffer_bytes = client->server.outgoing_buffer_bytes;
     
     return TCP_Client_Result_OK;
 }
@@ -338,8 +275,6 @@ TCP_Client_Result tcp_client_read(TCP_Client *client){
         
     if(result == Socket_Result_Nothing_Read){
         if(client->server.incoming_buffer_bytes == 0){
-
-            sleep_ms(50);
             return TCP_Client_Result_Nothing_Read_Yet;
         }
     }

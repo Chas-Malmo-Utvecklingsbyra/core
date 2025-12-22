@@ -6,6 +6,7 @@
 #include "../shared/tcp_shared.h"
 #include "../../weather/weather.h"
 #include "../../http/parser.h"
+#include "../../utils/sleep.h"
 
 #ifndef TCP_CLIENT_RECEIVE_BUFFER_SIZE
     #define TCP_CLIENT_RECEIVE_BUFFER_SIZE 2048 * 4
@@ -91,14 +92,6 @@ struct TCP_Client {
     TCP_Client_Callback_On_Disconnect on_disconnect_callback;
     TCP_Client_Callback_On_Error on_error_callback;
 };
-
-/* -------- Helpers ---------- */
-
-void sleep_ms(int milliseconds);
-
-/* -------------------------- */
-
-
 
 TCP_Client_Result tcp_client_init(TCP_Client *client, void* _Context, TCP_Client_Callback_On_Received_Bytes_From_Server on_received, TCP_Client_Callback_On_Full_Request on_full_request, TCP_Client_Callback_On_Connect on_connect, TCP_Client_Callback_On_Disconnect on_disconnect, TCP_Client_Callback_On_Error on_error);
 

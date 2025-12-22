@@ -41,6 +41,14 @@ Socket_Result socket_open_client(const uint32_t port, const char* ip_string, Soc
         return Socket_Result_Port_Already_Used;
     }
 
+#ifndef _WIN32
+    int flags = fcntl(fd, F_GETFL, 0);
+    if(flags < 0 || fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0){
+        close(fd);
+        return Socket_Result_Failed_Fcntl;
+    }
+#endif
+
     out_socket->file_descriptor = (uint32_t)fd;
 
     struct sockaddr_in serv_addr;
@@ -50,6 +58,7 @@ Socket_Result socket_open_client(const uint32_t port, const char* ip_string, Soc
     /* 2. Konvertera IP-adress */
     if (inet_pton(AF_INET, ip_string, &serv_addr.sin_addr) <= 0) {
         perror("Invalid address/Address not supported");
+        close(fd);
         return Socket_Result_Invalid_Address;
     }
 
@@ -58,11 +67,15 @@ Socket_Result socket_open_client(const uint32_t port, const char* ip_string, Soc
 #ifdef _WIN32
         if(WSAGetLastError() != WSAEWOULDBLOCK && WSAGetLastError() != WSAEINPROGRESS){
             perror("Connection Failed");
+            closesocket(fd);
             return Socket_Result_Connection_Failed; 
         }
 #else   
-        perror("Connection Failed");
-        return Socket_Result_Connection_Failed;
+        if(errno != EINPROGRESS){
+            perror("Connection Failed");
+            close(fd);
+            return Socket_Result_Connection_Failed;
+        }
 #endif
     }
 
