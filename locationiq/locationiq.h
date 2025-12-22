@@ -43,8 +43,8 @@ size_t write_chunk(void* data, size_t item_size, size_t nmemb, void* user_data);
  * @return char* The raw JSON response from LocationIQ API, or NULL on failure.
  *                The caller is responsible for freeing the returned string.
  */
-char *locationiq_api_call(const char *location, int limit);
+char *locationiq_api_call(const char *location, int limit, const char *access_token);
 
-int locationiq_get_coordinates(Coordinates *coords, const char *location);
+int locationiq_get_coordinates(Coordinates *coords, const char *location, const char *access_token);
 
 #endif

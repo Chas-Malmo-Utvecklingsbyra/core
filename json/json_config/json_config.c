@@ -19,11 +19,6 @@ Json_Config_Field_Enum get_json_field_name_enum(const char* field_name)
     else if (strcmp(field_name, "postgresql_host") == 0) return Json_Config_Field_Postgresql_Host;
     else if (strcmp(field_name, "postgresql_api_key") == 0) return Json_Config_Field_Postgresql_Api_Key;
     else if (strcmp(field_name, "locationiq_access_token") == 0) return Json_Config_Field_Locationiq_Access_Token;
-    //else if (strcmp(field_name, "allowed_routes") == 0) return Json_Config_Field_Allowed_Routes;
-    //else if (strcmp(field_name, "route") == 0) return Json_Config_Field_Allowed_Routes_Route;
-    //else if (strcmp(field_name, "method") == 0) return Json_Config_Field_Allowed_Routes_Method;
-    //else if (strcmp(field_name, "args_count") == 0) return Json_Config_Field_Allowed_Routes_Args_Count;
-    //else if (strcmp(field_name, "args") == 0) return Json_Config_Field_Allowed_Routes_Args;
     
     return Json_Config_Field_Invalid;
 }
@@ -48,7 +43,6 @@ Json_Config_Field_Enum get_json_field_name_enum(const char* field_name)
  *       - "postgresql_host": String, max length CONFIG_MAX_LENGTH_POSTGRESQL_HOST
  *       - "postgresql_api_key": String, max length CONFIG_MAX_LENGTH_POSTGRESQL_API_KEY
  *      - "locationiq_access_token": String
- *      - "allowed_routes": Array of route objects
  */
 bool validate_json_field(Json_Config_Field_Enum field_enum, const cJSON* item)
 {
@@ -85,26 +79,6 @@ bool validate_json_field(Json_Config_Field_Enum field_enum, const cJSON* item)
             if (cJSON_IsString(item) && item->valuestring != NULL) return true;
             break;
         
-        //case Json_Config_Field_Allowed_Routes:
-        //    if (cJSON_IsArray(item) && cJSON_GetArraySize(item) > 0) return true;
-        //    break;
-        //    
-        //case Json_Config_Field_Allowed_Routes_Route:
-        //    if (cJSON_IsString(item) && item->valuestring != NULL && (strlen(item->valuestring) <= CONFIG_MAX_LENGTH_ROUTE)) return true;
-        //    break;
-        //    
-        //case Json_Config_Field_Allowed_Routes_Method:
-        //    if (cJSON_IsString(item) && item->valuestring != NULL && (strlen(item->valuestring) <= CONFIG_MAX_LENGTH_WEBMETHOD)) return true;
-        //    break;
-        //    
-        //case Json_Config_Field_Allowed_Routes_Args_Count:
-        //    if (cJSON_IsNumber(item) && (item->valueint >= 0)) return true;
-        //    break;
-        //    
-        //case Json_Config_Field_Allowed_Routes_Args:
-        //    if (cJSON_IsArray(item)) return true;
-        //    break;
-            
         default:
             break;
     }
@@ -181,18 +155,6 @@ Config_Result parse_json_to_config(Config_t* cfg, const char* config_file_path)
                     cfg->locationiq_access_token = strdup(current_element->valuestring);
                     break;
                 
-                //case Json_Config_Field_Allowed_Routes:
-                //{
-                //    Config_Result route_err = populate_allowed_routes(cfg, current_element);
-                //    if (route_err != Config_Result_OK)
-                //    {
-                //        current_element = NULL;
-                //        cJSON_Delete(root);
-                //        return route_err;
-                //    }
-                //    break;
-                //}
-                
                 default:
                     break;
             }
@@ -204,10 +166,7 @@ Config_Result parse_json_to_config(Config_t* cfg, const char* config_file_path)
             cJSON_Delete(root);
             return Config_Result_Validation_Error;
         }
-        
-        
     }
     cJSON_Delete(root);
-    printf("Configuration loaded successfully from %s\n", config_file_path);
     return Config_Result_OK;
 }

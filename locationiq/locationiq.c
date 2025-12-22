@@ -1,10 +1,9 @@
+#include "locationiq.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <curl/curl.h>
-#include "../config/config.h"
 
-#include "locationiq.h"
 
 size_t write_chunk(void* data, size_t item_size, size_t nmemb, void* user_data)
 {
@@ -26,16 +25,11 @@ size_t write_chunk(void* data, size_t item_size, size_t nmemb, void* user_data)
     return real_size;
 }
 
-char* locationiq_api_call(const char* location, int limit)
+char *locationiq_api_call(const char *location, int limit, const char *access_token)
 {
     char url[256];
 
-    sprintf(url, "https://eu1.locationiq.com/v1/search?key=%s&q=%s&format=json&limit=%d", config_get_instance(NULL)->locationiq_access_token, location, limit);
-    
-    if (config_get_instance(NULL)->config_debug)
-    {
-        printf("LocationIQ API URL: %s\n", url);
-    }
+    sprintf(url, "https://eu1.locationiq.com/v1/search?key=%s&q=%s&format=json&limit=%d", access_token, location, limit);
     
     CURL* curl = curl_easy_init();
     CURLcode result;
@@ -72,9 +66,9 @@ char* locationiq_api_call(const char* location, int limit)
     return full_string;
 }
 
-int locationiq_get_coordinates(Coordinates* coords, const char* location)
+int locationiq_get_coordinates(Coordinates *coords, const char *location, const char *access_token)
 {   
-    char* json_string = locationiq_api_call(location, 1); /* limit set to 1 for single result */
+    char* json_string = locationiq_api_call(location, 1, access_token); /* limit set to 1 for single result */
     if (json_string == NULL)
     {
         return LOCATIONIQ_RESULT_ERROR;
