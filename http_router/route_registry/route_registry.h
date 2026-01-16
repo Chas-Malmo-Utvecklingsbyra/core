@@ -2,7 +2,7 @@
 #define ROUTE_REGISTRY_H
 
 #include "../query_parameters/query_parameters.h"
-#include "core/http/http.h"
+#include "../../http/http.h"
 
 /**
  * @brief Structure to hold the result of an API call.

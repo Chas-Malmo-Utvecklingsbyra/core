@@ -6,10 +6,10 @@
 
 #include "route_registry/route_registry.h"
 #include "query_parameters/query_parameters.h"
-#include "core/string/strdup.h"
-#include "core/http/parser.h"
-#include "core/http/http.h"
-#include "core/tcp/server/tcp_server.h"
+#include "../string/strdup.h"
+#include "../http/parser.h"
+#include "../http/http.h"
+#include "../tcp/server/tcp_server.h"
 
 /**
  * @brief Initialize the request handler and register all routes.
