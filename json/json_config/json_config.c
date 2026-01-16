@@ -4,168 +4,78 @@
 #include "../fileHelper/fileHelper.h"
 #include "../../string/strdup.h"
 
-/**
- * @brief Maps a field name string to its corresponding Json_Config_Field_Enum value.
- * 
- * @param field_name The name of the configuration field.
- * @return Corresponding Json_Config_Field_Enum value, or -1 if not found.
- */
-Json_Config_Field_Enum get_json_field_name_enum(const char* field_name)
+Config_Result Config_Parse_Json(Config_t* cfg, const char* config_file_path)
 {
-    if (strcmp(field_name, "server_host") == 0) return Json_Config_Field_Server_Host;
-    else if (strcmp(field_name, "server_port") == 0) return Json_Config_Field_Server_Port;
-    else if (strcmp(field_name, "debug") == 0) return Json_Config_Field_Debug;
-    else if (strcmp(field_name, "max_connections") == 0) return Json_Config_Field_Max_Connections;
-    else if (strcmp(field_name, "postgresql_host") == 0) return Json_Config_Field_Postgresql_Host;
-    else if (strcmp(field_name, "postgresql_api_key") == 0) return Json_Config_Field_Postgresql_Api_Key;
-    else if (strcmp(field_name, "locationiq_access_token") == 0) return Json_Config_Field_Locationiq_Access_Token;
-    
-    return Json_Config_Field_Invalid;
-}
-
-/**
- * @brief Validates a JSON configuration field based on its name and expected type/constraints.
- * 
- * Checks if the JSON item matches the expected type and constraints for the given field name.
- * Validates string lengths, numeric ranges, and boolean types according to the configuration
- * requirements defined in config.h.
- * 
- * @param field_enum The enum value of the configuration field to validate.
- * @param item The cJSON item to validate.
- * @note TODO: LS - change to a switch statement.
- * @return true if the field is valid according to its constraints, false otherwise.
- * 
- * @note Supported fields:
- *       - "server_host": String, max length CONFIG_MAX_LENGTH_SERVER_HOST
- *       - "server_port": Number, range 0-65535, max string length CONFIG_MAX_LENGTH_SERVER_PORT
- *       - "debug": Boolean
- *       - "max_connections": Number, non-negative
- *       - "postgresql_host": String, max length CONFIG_MAX_LENGTH_POSTGRESQL_HOST
- *       - "postgresql_api_key": String, max length CONFIG_MAX_LENGTH_POSTGRESQL_API_KEY
- *      - "locationiq_access_token": String
- */
-bool validate_json_field(Json_Config_Field_Enum field_enum, const cJSON* item)
-{
-    if (item == NULL) return false;
-    
-    switch (field_enum)
-    {
-        /* JSON Config Fields */
-        case Json_Config_Field_Server_Host:
-            if (cJSON_IsString(item) && item->valuestring != NULL && (strlen(item->valuestring) <= CONFIG_MAX_LENGTH_SERVER_HOST)) return true;
-            break;
-        
-        case Json_Config_Field_Server_Port:
-            if (cJSON_IsNumber(item) && (item->valueint > 0) && (item->valueint <= CONFIG_MAX_VALUE_SERVER_PORT)) return true;
-            break;
-            
-        case Json_Config_Field_Debug:
-            if (cJSON_IsBool(item)) return true;
-            break;
-            
-        case Json_Config_Field_Max_Connections:
-            if (cJSON_IsNumber(item) && (item->valueint > 0) && (item->valueint <= CONFIG_MAX_CONNECTIONS_COUNT)) return true;
-            break;
-            
-        case Json_Config_Field_Postgresql_Host:
-            if (cJSON_IsString(item) && item->valuestring != NULL && (strlen(item->valuestring) <= CONFIG_MAX_LENGTH_POSTGRESQL_HOST)) return true;
-            break;
-            
-        case Json_Config_Field_Postgresql_Api_Key:
-            if (cJSON_IsString(item) && item->valuestring != NULL && (strlen(item->valuestring) <= CONFIG_MAX_LENGTH_POSTGRESQL_API_KEY)) return true;
-            break;
-            
-        case Json_Config_Field_Locationiq_Access_Token:
-            if (cJSON_IsString(item) && item->valuestring != NULL) return true;
-            break;
-        
-        default:
-            break;
-    }
-    return false;
-}
-
-/**
- * @brief Builds a Config_t structure from a JSON configuration file.
- * 
- * Reads the JSON configuration file, validates each field, and populates
- * the provided Config_t structure with the corresponding values.
- * 
- * @param cfg Pointer to the Config_t structure to populate.
- * @param config_file_path Path to the JSON configuration file.
- * @return Config_Result indicating success or the type of error encountered.
- */
-Config_Result parse_json_to_config(Config_t* cfg, const char* config_file_path)
-{
-    if(cfg == NULL) return Config_Result_Error;
+    if(!cfg || !config_file_path) return Config_Result_Error;
     
     cJSON* root = json_read_from_file(config_file_path);
     
-    if (root == NULL) return Config_File_Path_Error;
+    if (!root) return Config_Result_Reading_Error;
     
-    cJSON* current_element = NULL;
-    int i = 0;
-    char* field_name = NULL;
+    int root_size = cJSON_GetArraySize(root);
+    if(root_size <= 0)
+    {
+        cJSON_Delete(root);
+        return Config_Result_Reading_Error;
+    }
     
-    for(i = 0; i < cJSON_GetArraySize(root); i++)
+    if (Config_Fields_Init(cfg, root_size) != Config_Result_OK) // initialize config fields
+    {
+        cJSON_Delete(root);
+        return Config_Result_Error;
+    }
+    
+    cJSON *current_element = NULL;
+    char *config_key = NULL;
+    
+    for (int i = 0; i < root_size; i++)
     {
         current_element = cJSON_GetArrayItem(root, i);
-        if (current_element == NULL) break;
         
-        field_name = current_element->string;
+        if (!current_element) break;
         
-        if(field_name == NULL)
+        config_key = current_element->string; // get json key
+        
+        if (!config_key || !current_element)
         {
             current_element = NULL;
             cJSON_Delete(root);
             return Config_Result_Validation_Error;
         }
         
-        Json_Config_Field_Enum field_enum = get_json_field_name_enum(field_name);
-        
-        if(validate_json_field(field_enum, current_element))
+        Config_Result result = Config_Result_OK;
+        if (cJSON_IsString(current_element))
         {
-            switch (field_enum)
-            {
-                case Json_Config_Field_Server_Host:
-                    cfg->config_server_host = strdup(current_element->valuestring);
-                    break;
-                
-                case Json_Config_Field_Server_Port:
-                    cfg->config_server_port = (uint16_t)(current_element->valueint);
-                    break;
-                
-                case Json_Config_Field_Debug:
-                    cfg->config_debug = cJSON_IsTrue(current_element);
-                    break;
-                
-                case Json_Config_Field_Max_Connections:
-                    cfg->config_max_connections = (size_t)(current_element->valueint);
-                    break;
-                
-                case Json_Config_Field_Postgresql_Host:
-                    cfg->config_postgresql_host = strdup(current_element->valuestring);
-                    break;
-                
-                case Json_Config_Field_Postgresql_Api_Key:
-                    cfg->config_postgresql_api_key = strdup(current_element->valuestring);
-                    break;
-                    
-                case Json_Config_Field_Locationiq_Access_Token:
-                    cfg->locationiq_access_token = strdup(current_element->valuestring);
-                    break;
-                
-                default:
-                    break;
-            }
+            result = Config_Add_Field(cfg, config_key, Config_Field_Type_String, current_element->valuestring);
+        }
+        else if (cJSON_IsNumber(current_element))
+        {
+            result = Config_Add_Field(cfg, config_key, Config_Field_Type_Integer, &(current_element->valueint));
+        }
+        else if (cJSON_IsBool(current_element))
+        {
+            bool bool_value = cJSON_IsTrue(current_element) ? true : false;
+            result = Config_Add_Field(cfg, config_key, Config_Field_Type_Boolean, &bool_value);
+        }
+        else if(cJSON_IsArray(current_element) || cJSON_IsObject(current_element))
+        {
+            // Nested objects/arrays are not supported
+            perror("Nested JSON objects/arrays are not supported in configuration files.\n");
+            continue;
         }
         else
         {
-            printf("Validation failed for field: %s\n", field_name);
-            current_element = NULL;
             cJSON_Delete(root);
-            return Config_Result_Validation_Error;
+            return Config_Result_Reading_Error;
         }
+        if (result != Config_Result_OK)
+        {
+            cJSON_Delete(root);
+            return result;
+        }
+        
+        current_element = NULL;
+        config_key = NULL;
     }
     cJSON_Delete(root);
     return Config_Result_OK;

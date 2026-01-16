@@ -1,25 +1,18 @@
-#ifndef __JSON_CONFIG_H__
-#define __JSON_CONFIG_H__
+#ifndef JSON_CONFIG_H
+#define JSON_CONFIG_H
 
 #include "../../config/config.h"
 
-typedef enum Json_Config_Field_Enum
-{
-    Json_Config_Field_Invalid = -1,
-    Json_Config_Field_Server_Host,
-    Json_Config_Field_Server_Port,
-    Json_Config_Field_Debug,
-    Json_Config_Field_Max_Connections,
-    Json_Config_Field_Postgresql_Host,
-    Json_Config_Field_Postgresql_Api_Key,
-    Json_Config_Field_Locationiq_Access_Token,
-    Json_Config_Field_Allowed_Routes,
-    Json_Config_Field_Allowed_Routes_Route,
-    Json_Config_Field_Allowed_Routes_Method,
-    Json_Config_Field_Allowed_Routes_Args_Count,
-    Json_Config_Field_Allowed_Routes_Args
-} Json_Config_Field_Enum;
+/**
+ * @brief Parses a JSON configuration file and populate provided Config_t structure.
+ * 
+ * Reads the JSON configuration file, loads, and populates
+ * the provided Config_t structure with the corresponding key-values.
+ * 
+ * @param cfg Pointer to the Config_t structure to populate.
+ * @param config_file_path Path to the JSON configuration file.
+ * @return Config_Result indicating success or the type of error encountered.
+ */
+Config_Result Config_Parse_Json(Config_t* cfg, const char* config_file_path);
 
-Config_Result parse_json_to_config(Config_t* cfg, const char* config_file_path);
-
-#endif /* __JSON_CONFIG_H__ */
+#endif /* JSON_CONFIG_H */
