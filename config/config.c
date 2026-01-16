@@ -71,7 +71,7 @@ void Config_Dispose(Config_t *cfg)
     {
         for (size_t i = 0; i < cfg->config_field_count; i++)
         {
-            Config_Field_t* field = &(cfg->config_fields[i]);
+            Config_Field_t* field = cfg->config_fields[i];
             if (!field) continue;
             
             if (field->config_key)
@@ -84,7 +84,7 @@ void Config_Dispose(Config_t *cfg)
                 free(field->config_value);
                 field->config_value = NULL;
             }
-            //free(field);
+            free(field);
             field = NULL;
         }
         free(cfg->config_fields);
@@ -192,8 +192,9 @@ Config_Result Config_Add_Field(Config_t *cfg, const char *config_key, Config_Fie
             new_field->config_key = temp_field_name;
             new_field->config_value = temp_string_value;
             new_field->field_type = Config_Field_Type_String;
-            cfg->config_fields[cfg->config_field_count] = *new_field;
+            cfg->config_fields[cfg->config_field_count] = new_field;
             cfg->config_field_count++;
+            new_field = NULL;  // Ownership transferred
             break;
             
         case Config_Field_Type_Integer:
@@ -211,8 +212,9 @@ Config_Result Config_Add_Field(Config_t *cfg, const char *config_key, Config_Fie
             new_field->config_key = temp_field_name;
             new_field->config_value = temp_int_value;
             new_field->field_type = Config_Field_Type_Integer;
-            cfg->config_fields[cfg->config_field_count] = *new_field;
+            cfg->config_fields[cfg->config_field_count] = new_field;
             cfg->config_field_count++;
+            new_field = NULL;  // Ownership transferred
             break;
             
         case Config_Field_Type_Boolean:
@@ -230,13 +232,14 @@ Config_Result Config_Add_Field(Config_t *cfg, const char *config_key, Config_Fie
             new_field->config_key = temp_field_name;
             new_field->config_value = temp_bool_value;
             new_field->field_type = Config_Field_Type_Boolean;
-            cfg->config_fields[cfg->config_field_count] = *new_field;
+            cfg->config_fields[cfg->config_field_count] = new_field;
             cfg->config_field_count++;
+            new_field = NULL;  // Ownership transferred
             break;
             
         default:
+            free(new_field);
             return Config_Result_Error;
-            break;
     }
     return Config_Result_OK;
 }
@@ -248,11 +251,11 @@ char *Config_Get_Field_Value_String(Config_t *cfg, const char *key)
     
     for (size_t i = 0; i < cfg->config_field_count; i++)
     {
-        if(strcmp(cfg->config_fields[i].config_key, key) == 0)
+        if(strcmp(cfg->config_fields[i]->config_key, key) == 0)
         {
-            if (cfg->config_fields[i].field_type == Config_Field_Type_String)
+            if (cfg->config_fields[i]->field_type == Config_Field_Type_String)
             {
-                return (char *)cfg->config_fields[i].config_value;
+                return (char *)cfg->config_fields[i]->config_value;
             }
             else
             {
@@ -272,12 +275,12 @@ int Config_Get_Field_Value_Integer(Config_t *cfg, const char *config_key, bool *
     }
     for (size_t i = 0; i < cfg->config_field_count; i++)
     {
-        if(strcmp(cfg->config_fields[i].config_key, config_key) == 0)
+        if(strcmp(cfg->config_fields[i]->config_key, config_key) == 0)
         {
-            if (cfg->config_fields[i].field_type == Config_Field_Type_Integer)
+            if (cfg->config_fields[i]->field_type == Config_Field_Type_Integer)
             {
                 if (out_found) *out_found = true;
-                return *((int *)cfg->config_fields[i].config_value);
+                return *((int *)cfg->config_fields[i]->config_value);
             }
             else
             {
@@ -300,13 +303,13 @@ bool Config_Get_Field_Value_Boolean(Config_t *cfg, const char *config_key, bool 
     }
     for (size_t i = 0; i < cfg->config_field_count; i++)
     {
-        if (strcmp(cfg->config_fields[i].config_key, config_key) == 0)
+        if (strcmp(cfg->config_fields[i]->config_key, config_key) == 0)
         {
-            if (cfg->config_fields[i].field_type == Config_Field_Type_Boolean)
+            if (cfg->config_fields[i]->field_type == Config_Field_Type_Boolean)
             {
                 if (out_found)
                     *out_found = true;
-                return *((bool *)cfg->config_fields[i].config_value);
+                return *((bool *)cfg->config_fields[i]->config_value);
             }
             else
             {

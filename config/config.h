@@ -35,7 +35,7 @@ struct Config_Field_t
 
 struct Config_t
 {
-    Config_Field_t* config_fields;
+    Config_Field_t** config_fields;
     size_t config_field_count;
 };
 
