@@ -8,7 +8,7 @@ endif
 SRC_FILES := $(shell find . -name "*.c")
 SRC_FILES := $(filter-out ./tests/%,$(SRC_FILES))
 
-INCLUDE_PATHS :=
+INCLUDE_PATHS := .
 
 CFLAGS = -std=$(C_VERSION) -Wall -Wextra -Werror -Wpedantic $(addprefix -I,$(INCLUDE_PATHS))
 

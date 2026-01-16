@@ -53,7 +53,7 @@ char* http_get_content_type_string(int content_type)
  * @param out_bytes_written_to_buffer Pointer to store the number of bytes written to the buffer
  * @return true if the response was created successfully
  */
-bool http_create_response(uint8_t *buffer, uint32_t buffer_length, char *body, const HTTP_Status_Code http_status_code, uint32_t body_length, uint32_t *out_bytes_written_to_buffer, Http_Content_Type content_type){
+bool http_create_response(uint8_t *buffer, uint32_t buffer_length, const char *body, uint32_t body_length, const HTTP_Status_Code http_status_code, uint32_t *out_bytes_written_to_buffer, Http_Content_Type content_type){
     /* TODO: (SS) Create our own sNprintf() func/lib */
 
     *out_bytes_written_to_buffer = snprintf((char*)buffer, buffer_length, "HTTP/1.1 %s\r\n"
