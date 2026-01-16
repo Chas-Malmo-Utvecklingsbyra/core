@@ -1,13 +1,54 @@
 #include "config.h"
-#include "../json/json_config/json_config.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include "../json/json_config/json_config.h"
 
 /* Singleton implementation */
 static Config_t* global_config_singleton = NULL;
 static bool global_is_config_singleton_initialized = false;
 static Config_Result global_config_error = Config_Result_OK;
+
+/* ==== Local functions start ==== */
+
+/**
+ * @brief Initializes the Config_t structure with default values.
+ * 
+ * Sets the config_fields pointer to NULL and config_field_count to 0.
+ * 
+ * @param cfg Pointer to the Config_t structure to initialize.
+ * @return Config_Result indicating success or type of error encountered.
+ */
+Config_Result config_init(Config_t *cfg)
+{
+    if (!cfg) return Config_Result_Error;
+    
+    cfg->config_fields = NULL;
+    cfg->config_field_count = 0;
+    
+    return Config_Result_OK;
+}
+
+/**
+ * @brief Initializes a Config_Field_t structure with default values.
+ * 
+ * Allocates memory for a Config_Field_t structure and sets its fields to default values.
+ * The config_key and config_value pointers are set to NULL, and field_type is set to
+ * Config_Field_Type_String by default.
+ * 
+ * @return Pointer to the initialized Config_Field_t structure, or NULL on memory allocation failure.
+ */
+Config_Field_t* config_field_init()
+{
+    Config_Field_t* field = malloc(sizeof(Config_Field_t));
+    if (!field) return NULL; // allocation failed
+    
+    field->config_key = NULL;
+    field->config_value = NULL;
+    field->field_type = Config_Field_Type_String; // default type
+    
+    return field;
+}
 
 /**
  * @brief Frees all dynamically allocated memory in a Config_t structure and resets values.
@@ -25,52 +66,30 @@ void config_dispose(Config_t *cfg)
 {
     if (cfg == NULL) return;
     
-    if (cfg->config_server_host)
+    if (cfg->config_fields)
     {
-        free(cfg->config_server_host);
-        cfg->config_server_host = NULL;
+        for (size_t i = 0; i < cfg->config_field_count; i++)
+        {
+            Config_Field_t* field = &(cfg->config_fields[i]);
+            if (!field) continue;
+            
+            if (field->config_key)
+            {
+                free(field->config_key);
+                field->config_key = NULL;
+            }
+            if (field->config_value)
+            {
+                free(field->config_value);
+                field->config_value = NULL;
+            }
+            //free(field);
+            field = NULL;
+        }
+        free(cfg->config_fields);
+        cfg->config_fields = NULL;
     }
-    if (cfg->config_postgresql_host)
-    {
-        free(cfg->config_postgresql_host);
-        cfg->config_postgresql_host = NULL;
-    }
-    if (cfg->config_postgresql_api_key)
-    {
-        free(cfg->config_postgresql_api_key);
-        cfg->config_postgresql_api_key = NULL;
-    }
-    if(cfg->locationiq_access_token)
-    {
-        free(cfg->locationiq_access_token);
-        cfg->locationiq_access_token = NULL;
-    }
-    cfg->config_server_port = 0;
-    cfg->config_debug = false;
-    cfg->config_max_connections = 0;
-}
-
-/**
- * @brief Initializes a Config_t structure to default values.
- * 
- * Sets all string pointers to NULL, numeric values to 0, and boolean values to false.
- * This function should be called before loading configuration to ensure a clean state.
- * 
- * @param cfg Pointer to the Config_t structure to initialize.
- * @return Config_Result_OK on success, Config_Result_Error if cfg is NULL.
- */
-Config_Result config_init(Config_t *cfg)
-{
-    if (!cfg) return Config_Result_Error;
-        
-    cfg->config_server_host = NULL;
-    cfg->config_server_port = 0;
-    cfg->config_debug = false;
-    cfg->config_max_connections = 0;
-    cfg->config_postgresql_host = NULL;
-    cfg->config_postgresql_api_key = NULL;
-        
-    return Config_Result_OK;
+    cfg->config_field_count = 0;
 }
 
 /**
@@ -82,10 +101,10 @@ Config_Result config_init(Config_t *cfg)
 
 Config_Result config_load(Config_t *cfg, const char* config_file_path)
 {
-    if (cfg == NULL) return Config_Result_Error;
-    
+    if (cfg == NULL) return Config_Result_Initialization_Error;
+
     /* use default config file path if none provided */
-    if (config_file_path == NULL) config_file_path = CONFIG_FILE_PATH;
+    if (!config_file_path) config_file_path = CONFIG_DEFAULT_FILE_PATH;
     
     Config_Result result = Config_Result_OK;
     result = parse_json_to_config(cfg, config_file_path);
@@ -93,21 +112,15 @@ Config_Result config_load(Config_t *cfg, const char* config_file_path)
     return result;
 }
 
-/**
- * @brief Retrieves or initializes the singleton instance of the configuration.
- * 
- * @param config_file_path Path to the configuration file, if NULL the default path is used.
- * 
- * @note Send in NULL for config_file_path if it has already been initialized.
- * 
- * Singleton implementation
- * @return Pointer to the Config_t instance, or NULL on failure.
- */
+/* ==== Local functions end ==== */
+
 Config_t* config_get_instance(const char* config_file_path)
 {
     if (!global_config_singleton && !global_is_config_singleton_initialized) 
     {
         global_config_singleton = malloc(sizeof(Config_t));
+        memset(global_config_singleton, 0, sizeof(Config_t));
+        
         if (!global_config_singleton) 
         {
             global_config_error = Config_Result_Error;
@@ -115,23 +128,20 @@ Config_t* config_get_instance(const char* config_file_path)
             return NULL;
         }
         
-        Config_Result init_result = config_init(global_config_singleton);
-        if(init_result != Config_Result_OK)
+        if (config_init(global_config_singleton) != Config_Result_OK)
         {
             free(global_config_singleton);
             global_config_singleton = NULL;
-            global_config_error = init_result;
+            global_config_error = Config_Result_Error;
             global_is_config_singleton_initialized = true; // Prevent retry
             return NULL;
         }
-        
-        Config_Result load_result = config_load(global_config_singleton, config_file_path);
-        if(load_result != Config_Result_OK)
+        if (config_load(global_config_singleton, config_file_path) != Config_Result_OK)
         {
             config_dispose(global_config_singleton);
             free(global_config_singleton);
             global_config_singleton = NULL;
-            global_config_error = load_result;
+            global_config_error = Config_Result_Error;
             global_is_config_singleton_initialized = true; // Prevent retry
             return NULL;
         }
@@ -142,12 +152,91 @@ Config_t* config_get_instance(const char* config_file_path)
     return global_config_singleton;
 }
 
-/**
- * @brief Destroys the singleton configuration instance and frees associated memory.
- * 
- * After calling this function, the next call to config_get_instance() will
- * attempt to recreate the singleton.
- */
+Config_Result config_fields_init(Config_t *cfg, size_t field_capacity)
+{
+    if (!cfg || field_capacity <= 0)
+        return Config_Result_Error;
+
+    cfg->config_fields = malloc(sizeof(Config_Field_t) * field_capacity);
+
+    if (!cfg->config_fields)
+        return Config_Result_Allocation_Error;
+
+    return Config_Result_OK;
+}
+
+Config_Result config_add_field(Config_t *cfg, const char *config_key, Config_Field_Type_t field_type, void *config_value)
+{
+    if (cfg == NULL || config_key == NULL || config_value == NULL) // not initialized
+        return Config_Result_Initialization_Error;
+
+    Config_Field_t *new_field = config_field_init();
+    if (!new_field)
+        return Config_Result_Allocation_Error;
+
+    switch (field_type)
+    {
+    case Config_Field_Type_String:
+        char *temp_field_name = strdup(config_key);
+        char *temp_field_value = strdup((char *)config_value);
+
+        if (!temp_field_name || !temp_field_value)
+            return Config_Result_Allocation_Error;
+
+        new_field->config_key = temp_field_name;
+        new_field->config_value = temp_field_value;
+        new_field->field_type = Config_Field_Type_String;
+        cfg->config_fields[cfg->config_field_count] = *new_field;
+        cfg->config_field_count++;
+        break;
+
+    case Config_Field_Type_Integer:
+        char *temp_field_name = strdup(config_key);
+        if (!temp_field_name)
+            return Config_Result_Allocation_Error;
+
+        int *temp_field_value = malloc(sizeof(int));
+        if (!temp_field_value)
+        {
+            free(temp_field_name);
+            return Config_Result_Allocation_Error;
+        }
+
+        *temp_field_value = *((int *)config_value);
+        new_field->config_key = temp_field_name;
+        new_field->config_value = temp_field_value;
+        new_field->field_type = Config_Field_Type_Integer;
+        cfg->config_fields[cfg->config_field_count] = *new_field;
+        cfg->config_field_count++;
+        break;
+
+    case Config_Field_Type_Boolean:
+        char *temp_field_name = strdup(config_key);
+        if (!temp_field_name)
+            return Config_Result_Allocation_Error;
+
+        bool *temp_field_value = malloc(sizeof(bool));
+        if (!temp_field_value)
+        {
+            free(temp_field_name);
+            return Config_Result_Allocation_Error;
+        }
+
+        *temp_field_value = *((bool *)config_value);
+        new_field->config_key = temp_field_name;
+        new_field->config_value = temp_field_value;
+        new_field->field_type = Config_Field_Type_Boolean;
+        cfg->config_fields[cfg->config_field_count] = *new_field;
+        cfg->config_field_count++;
+        break;
+
+    default:
+        return Config_Result_Error;
+        break;
+    }
+    return Config_Result_OK;
+}
+
 void config_instance_dispose(void)
 {
     if (global_config_singleton) 
@@ -160,10 +249,6 @@ void config_instance_dispose(void)
     global_config_error = Config_Result_OK;
 }
 
-/**
- * @brief Gets the last error that occurred during singleton initialization.
- * @return Config_Result indicating the type of error, or Config_Result_OK if no error.
- */
 Config_Result config_instance_get_last_error(void)
 {
     return global_config_error;
