@@ -1,8 +1,9 @@
 #include "config.h"
-#include <stdlib.h>
+
 #include <string.h>
 #include <stdio.h>
 #include "../json/json_config/json_config.h"
+#include "../string/strdup.h"
 
 /* Singleton implementation */
 static Config_t* global_config_singleton = NULL;
@@ -19,7 +20,7 @@ static Config_Result global_config_error = Config_Result_OK;
  * @param cfg Pointer to the Config_t structure to initialize.
  * @return Config_Result indicating success or type of error encountered.
  */
-Config_Result config_init(Config_t *cfg)
+Config_Result Config_Init(Config_t *cfg)
 {
     if (!cfg) return Config_Result_Error;
     
@@ -38,7 +39,7 @@ Config_Result config_init(Config_t *cfg)
  * 
  * @return Pointer to the initialized Config_Field_t structure, or NULL on memory allocation failure.
  */
-Config_Field_t* config_field_init()
+Config_Field_t* Config_Field_Init()
 {
     Config_Field_t* field = malloc(sizeof(Config_Field_t));
     if (!field) return NULL; // allocation failed
@@ -60,9 +61,9 @@ Config_Field_t* config_field_init()
  * @param cfg Pointer to the Config_t structure to dispose. Does nothing if cfg is NULL.
  * 
  * @note After calling this function, the Config_t structure can be safely reused by calling
- *       config_init() followed by config_load().
+ *       Config_Init() followed by Config_Load().
  */
-void config_dispose(Config_t *cfg)
+void Config_Dispose(Config_t *cfg)
 {
     if (cfg == NULL) return;
     
@@ -99,7 +100,7 @@ void config_dispose(Config_t *cfg)
  * @return Config_Result indicating success or the type of error encountered.
  */
 
-Config_Result config_load(Config_t *cfg, const char* config_file_path)
+Config_Result Config_Load(Config_t *cfg, const char* config_file_path)
 {
     if (cfg == NULL) return Config_Result_Initialization_Error;
 
@@ -107,14 +108,14 @@ Config_Result config_load(Config_t *cfg, const char* config_file_path)
     if (!config_file_path) config_file_path = CONFIG_DEFAULT_FILE_PATH;
     
     Config_Result result = Config_Result_OK;
-    result = parse_json_to_config(cfg, config_file_path);
+    result = Config_Parse_Json(cfg, config_file_path);
     
     return result;
 }
 
 /* ==== Local functions end ==== */
 
-Config_t* config_get_instance(const char* config_file_path)
+Config_t* Config_Get_Instance(const char* config_file_path)
 {
     if (!global_config_singleton && !global_is_config_singleton_initialized) 
     {
@@ -128,7 +129,7 @@ Config_t* config_get_instance(const char* config_file_path)
             return NULL;
         }
         
-        if (config_init(global_config_singleton) != Config_Result_OK)
+        if (Config_Init(global_config_singleton) != Config_Result_OK)
         {
             free(global_config_singleton);
             global_config_singleton = NULL;
@@ -136,9 +137,9 @@ Config_t* config_get_instance(const char* config_file_path)
             global_is_config_singleton_initialized = true; // Prevent retry
             return NULL;
         }
-        if (config_load(global_config_singleton, config_file_path) != Config_Result_OK)
+        if (Config_Load(global_config_singleton, config_file_path) != Config_Result_OK)
         {
-            config_dispose(global_config_singleton);
+            Config_Dispose(global_config_singleton);
             free(global_config_singleton);
             global_config_singleton = NULL;
             global_config_error = Config_Result_Error;
@@ -152,7 +153,7 @@ Config_t* config_get_instance(const char* config_file_path)
     return global_config_singleton;
 }
 
-Config_Result config_fields_init(Config_t *cfg, size_t field_capacity)
+Config_Result Config_Fields_Init(Config_t *cfg, size_t field_capacity)
 {
     if (!cfg || field_capacity <= 0)
         return Config_Result_Error;
@@ -165,83 +166,166 @@ Config_Result config_fields_init(Config_t *cfg, size_t field_capacity)
     return Config_Result_OK;
 }
 
-Config_Result config_add_field(Config_t *cfg, const char *config_key, Config_Field_Type_t field_type, void *config_value)
+Config_Result Config_Add_Field(Config_t *cfg, const char *config_key, Config_Field_Type_t field_type, void *config_value)
 {
     if (cfg == NULL || config_key == NULL || config_value == NULL) // not initialized
         return Config_Result_Initialization_Error;
 
-    Config_Field_t *new_field = config_field_init();
+    Config_Field_t *new_field = Config_Field_Init();
     if (!new_field)
         return Config_Result_Allocation_Error;
 
+    char *temp_field_name = NULL;
     switch (field_type)
     {
-    case Config_Field_Type_String:
-        char *temp_field_name = strdup(config_key);
-        char *temp_field_value = strdup((char *)config_value);
-
-        if (!temp_field_name || !temp_field_value)
-            return Config_Result_Allocation_Error;
-
-        new_field->config_key = temp_field_name;
-        new_field->config_value = temp_field_value;
-        new_field->field_type = Config_Field_Type_String;
-        cfg->config_fields[cfg->config_field_count] = *new_field;
-        cfg->config_field_count++;
-        break;
-
-    case Config_Field_Type_Integer:
-        char *temp_field_name = strdup(config_key);
-        if (!temp_field_name)
-            return Config_Result_Allocation_Error;
-
-        int *temp_field_value = malloc(sizeof(int));
-        if (!temp_field_value)
-        {
-            free(temp_field_name);
-            return Config_Result_Allocation_Error;
-        }
-
-        *temp_field_value = *((int *)config_value);
-        new_field->config_key = temp_field_name;
-        new_field->config_value = temp_field_value;
-        new_field->field_type = Config_Field_Type_Integer;
-        cfg->config_fields[cfg->config_field_count] = *new_field;
-        cfg->config_field_count++;
-        break;
-
-    case Config_Field_Type_Boolean:
-        char *temp_field_name = strdup(config_key);
-        if (!temp_field_name)
-            return Config_Result_Allocation_Error;
-
-        bool *temp_field_value = malloc(sizeof(bool));
-        if (!temp_field_value)
-        {
-            free(temp_field_name);
-            return Config_Result_Allocation_Error;
-        }
-
-        *temp_field_value = *((bool *)config_value);
-        new_field->config_key = temp_field_name;
-        new_field->config_value = temp_field_value;
-        new_field->field_type = Config_Field_Type_Boolean;
-        cfg->config_fields[cfg->config_field_count] = *new_field;
-        cfg->config_field_count++;
-        break;
-
-    default:
-        return Config_Result_Error;
-        break;
+        case Config_Field_Type_String:
+            temp_field_name = strdup(config_key);
+            if (!temp_field_name) return Config_Result_Allocation_Error;
+            
+            char *temp_string_value = strdup((char *)config_value);
+            if (!temp_string_value)
+            {
+                free(temp_field_name);
+                return Config_Result_Allocation_Error;
+            }
+        
+            new_field->config_key = temp_field_name;
+            new_field->config_value = temp_string_value;
+            new_field->field_type = Config_Field_Type_String;
+            cfg->config_fields[cfg->config_field_count] = *new_field;
+            cfg->config_field_count++;
+            break;
+            
+        case Config_Field_Type_Integer:
+            temp_field_name = strdup(config_key);
+            if (!temp_field_name) return Config_Result_Allocation_Error;
+            
+            int *temp_int_value = malloc(sizeof(int));
+            if (!temp_int_value)
+            {
+                free(temp_field_name);
+                return Config_Result_Allocation_Error;
+            }
+            
+            *temp_int_value = *((int *)config_value);
+            new_field->config_key = temp_field_name;
+            new_field->config_value = temp_int_value;
+            new_field->field_type = Config_Field_Type_Integer;
+            cfg->config_fields[cfg->config_field_count] = *new_field;
+            cfg->config_field_count++;
+            break;
+            
+        case Config_Field_Type_Boolean:
+            temp_field_name = strdup(config_key);
+            if (!temp_field_name) return Config_Result_Allocation_Error;
+            
+            bool *temp_bool_value = malloc(sizeof(bool));
+            if (!temp_bool_value)
+            {
+                free(temp_field_name);
+                return Config_Result_Allocation_Error;
+            }
+            
+            *temp_bool_value = *((bool *)config_value);
+            new_field->config_key = temp_field_name;
+            new_field->config_value = temp_bool_value;
+            new_field->field_type = Config_Field_Type_Boolean;
+            cfg->config_fields[cfg->config_field_count] = *new_field;
+            cfg->config_field_count++;
+            break;
+            
+        default:
+            return Config_Result_Error;
+            break;
     }
     return Config_Result_OK;
 }
 
-void config_instance_dispose(void)
+char *Config_Get_Field_Value_String(Config_t *cfg, const char *key)
+{
+    if (!cfg || !key)
+        return NULL;
+    
+    for (size_t i = 0; i < cfg->config_field_count; i++)
+    {
+        if(strcmp(cfg->config_fields[i].config_key, key) == 0)
+        {
+            if (cfg->config_fields[i].field_type == Config_Field_Type_String)
+            {
+                return (char *)cfg->config_fields[i].config_value;
+            }
+            else
+            {
+                return NULL; /* Type mismatch */
+            }
+        }
+    }
+    return NULL; /* Key not found */
+}
+
+int Config_Get_Field_Value_Integer(Config_t *cfg, const char *config_key, bool *out_found)
+{
+    if (!cfg || !config_key)
+    {
+        if (out_found) *out_found = false;
+        return 0;
+    }
+    for (size_t i = 0; i < cfg->config_field_count; i++)
+    {
+        if(strcmp(cfg->config_fields[i].config_key, config_key) == 0)
+        {
+            if (cfg->config_fields[i].field_type == Config_Field_Type_Integer)
+            {
+                if (out_found) *out_found = true;
+                return *((int *)cfg->config_fields[i].config_value);
+            }
+            else
+            {
+                if (out_found) *out_found = false;
+                return 0; /* Type mismatch */
+            }
+        }
+    }
+    if (out_found) *out_found = false;
+    return 0; /* Key not found */
+}
+
+bool Config_Get_Field_Value_Boolean(Config_t *cfg, const char *config_key, bool *out_found)
+{
+    if (!cfg || !config_key)
+    {
+        if (out_found)
+            *out_found = false;
+        return 0;
+    }
+    for (size_t i = 0; i < cfg->config_field_count; i++)
+    {
+        if (strcmp(cfg->config_fields[i].config_key, config_key) == 0)
+        {
+            if (cfg->config_fields[i].field_type == Config_Field_Type_Boolean)
+            {
+                if (out_found)
+                    *out_found = true;
+                return *((bool *)cfg->config_fields[i].config_value);
+            }
+            else
+            {
+                if (out_found)
+                    *out_found = false;
+                return false; /* Type mismatch */
+            }
+        }
+    }
+    if (out_found)
+        *out_found = false;
+    return 0; /* Key not found */
+}
+
+void Config_Instance_Dispose(void)
 {
     if (global_config_singleton) 
     {
-        config_dispose(global_config_singleton);
+        Config_Dispose(global_config_singleton);
         free(global_config_singleton);
         global_config_singleton = NULL;
     }
@@ -249,7 +333,7 @@ void config_instance_dispose(void)
     global_config_error = Config_Result_OK;
 }
 
-Config_Result config_instance_get_last_error(void)
+Config_Result Config_Instance_Get_Last_Error(void)
 {
     return global_config_error;
 }

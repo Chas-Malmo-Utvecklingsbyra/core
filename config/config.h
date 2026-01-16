@@ -49,7 +49,7 @@ struct Config_t
  * Singleton implementation
  * @return Pointer to the Config_t instance, or NULL on failure.
  */
-Config_t* config_get_instance(const char* config_file_path);
+Config_t* Config_Get_Instance(const char* config_file_path);
 
 /**
  * @brief Initializes the config_fields array in the Config_t structure.
@@ -61,7 +61,7 @@ Config_t* config_get_instance(const char* config_file_path);
  * 
  * @return Config_Result indicating success or type of error encountered.
  */
-Config_Result config_fields_init(Config_t *cfg, size_t field_capacity);
+Config_Result Config_Fields_Init(Config_t *cfg, size_t field_capacity);
 
 /**
  * @brief Adds a new field to the configuration.
@@ -75,20 +75,52 @@ Config_Result config_fields_init(Config_t *cfg, size_t field_capacity);
  * 
  * @return Config_Result indicating success or type of error encountered.
  */
-Config_Result config_add_field(Config_t *cfg, const char *config_key, Config_Field_Type_t field_type, void *config_value);
+Config_Result Config_Add_Field(Config_t *cfg, const char *config_key, Config_Field_Type_t field_type, void *config_value);
+
+/**
+ * @brief Retrieves the string value of a configuration field by its key.
+ * 
+ * @param cfg Pointer to the Config_t structure.
+ * @param config_key Key/name of the configuration field.
+ * 
+ * @return Pointer to the string value, or NULL if not found or type mismatch.
+ */
+char* Config_Get_Field_Value_String(Config_t *cfg, const char *config_key);
+
+/**
+ * @brief Retrieves the integer value of a configuration field by its key.
+ * 
+ * @param cfg Pointer to the Config_t structure.
+ * @param config_key Key/name of the configuration field.
+ * @param out_found Pointer to a boolean that will be set to true if the key is found and type matches, false otherwise.
+ * 
+ * @return The integer value of the configuration field, or 0 if not found or type mismatch.
+ */
+int Config_Get_Field_Value_Integer(Config_t *cfg, const char *config_key, bool *out_found);
+
+/**
+ * @brief Retrieves the boolean value of a configuration field by its key.
+ * 
+ * @param cfg Pointer to the Config_t structure.
+ * @param config_key Key/name of the configuration field.
+ * @param out_found Pointer to a boolean that will be set to true if the key is found and type matches, false otherwise.
+ * 
+ * @return The boolean value of the configuration field, or false if not found or type mismatch.
+ */
+bool Config_Get_Field_Value_Boolean(Config_t *cfg, const char *config_key, bool *out_found);
 
 /**
  * @brief Destroys the singleton configuration instance and frees associated memory.
  * 
- * After calling this function, the next call to config_get_instance() will
+ * After calling this function, the next call to Config_Get_Instance() will
  * attempt to recreate the singleton.
  */
-void config_instance_dispose(void);
+void Config_Instance_Dispose(void);
 
 /**
  * @brief Gets the last error that occurred during singleton initialization.
  * @return Config_Result indicating the type of error, or Config_Result_OK if no error.
  */
-Config_Result config_instance_get_last_error(void);
+Config_Result Config_Instance_Get_Last_Error(void);
 
 #endif /* CONFIG_H */

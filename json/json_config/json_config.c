@@ -4,7 +4,7 @@
 #include "../fileHelper/fileHelper.h"
 #include "../../string/strdup.h"
 
-Config_Result parse_json_to_config(Config_t* cfg, const char* config_file_path)
+Config_Result Config_Parse_Json(Config_t* cfg, const char* config_file_path)
 {
     if(!cfg || !config_file_path) return Config_Result_Error;
     
@@ -19,7 +19,7 @@ Config_Result parse_json_to_config(Config_t* cfg, const char* config_file_path)
         return Config_Result_Reading_Error;
     }
     
-    if (config_fields_init(cfg, root_size) != Config_Result_OK) // initialize config fields
+    if (Config_Fields_Init(cfg, root_size) != Config_Result_OK) // initialize config fields
     {
         cJSON_Delete(root);
         return Config_Result_Error;
@@ -46,16 +46,16 @@ Config_Result parse_json_to_config(Config_t* cfg, const char* config_file_path)
         Config_Result result = Config_Result_OK;
         if (cJSON_IsString(current_element))
         {
-            result = config_add_field(cfg, config_key, Config_Field_Type_String, current_element->valuestring);
+            result = Config_Add_Field(cfg, config_key, Config_Field_Type_String, current_element->valuestring);
         }
         else if (cJSON_IsNumber(current_element))
         {
-            result = config_add_field(cfg, config_key, Config_Field_Type_Integer, &(current_element->valueint));
+            result = Config_Add_Field(cfg, config_key, Config_Field_Type_Integer, &(current_element->valueint));
         }
         else if (cJSON_IsBool(current_element))
         {
             bool bool_value = cJSON_IsTrue(current_element) ? true : false;
-            result = config_add_field(cfg, config_key, Config_Field_Type_Boolean, &bool_value);
+            result = Config_Add_Field(cfg, config_key, Config_Field_Type_Boolean, &bool_value);
         }
         else if(cJSON_IsArray(current_element) || cJSON_IsObject(current_element))
         {

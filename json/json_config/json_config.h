@@ -13,6 +13,6 @@
  * @param config_file_path Path to the JSON configuration file.
  * @return Config_Result indicating success or the type of error encountered.
  */
-Config_Result parse_json_to_config(Config_t* cfg, const char* config_file_path);
+Config_Result Config_Parse_Json(Config_t* cfg, const char* config_file_path);
 
 #endif /* JSON_CONFIG_H */
