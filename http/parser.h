@@ -2,19 +2,13 @@
 #define HTTP_PARSER_H
 
 #include <stdio.h>
+#include "http/http.h"
 
 typedef struct
 {
     char* key;
     char* value;
 } Http_Request_Line;
-
-typedef enum
-{
-    POST,
-    GET,
-    OPTIONS
-}Http_Method;
 
 typedef struct
 {

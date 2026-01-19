@@ -43,6 +43,32 @@ char* http_get_content_type_string(int content_type)
     }
 }
 
+char *Http_Get_Method_String(Http_Method method)
+{
+    switch ((Http_Method)method)
+    {
+        case HTTP_METHOD_GET:
+            return "GET";
+            break;
+        case HTTP_METHOD_POST:
+            return "POST";
+            break;
+        case HTTP_METHOD_PUT:
+            return "PUT";
+            break;
+        case HTTP_METHOD_DELETE:
+            return "DELETE";
+            break;
+        case HTTP_METHOD_UNDEFINED:
+            return "UNDEFINED";
+            break;
+        
+        default:
+            break;
+    };
+    return "UNDEFINED";
+}
+
 /**
  * @brief Creates an HTTP response and writes it to the provided buffer.
  * @param buffer Pointer to the buffer where the response will be written.

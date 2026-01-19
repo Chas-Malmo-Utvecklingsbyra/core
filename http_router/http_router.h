@@ -6,10 +6,9 @@
 
 #include "route_registry/route_registry.h"
 #include "query_parameters/query_parameters.h"
-#include "../string/strdup.h"
-#include "../http/parser.h"
-#include "../http/http.h"
-#include "../tcp/server/tcp_server.h"
+#include "string/strdup.h"
+#include "http/parser.h"
+#include "http/http.h"
 
 /**
  * @brief Initialize the request handler and register all routes.
@@ -28,7 +27,7 @@
  * @return void
  * @note response_data should be NULL for error responses.
  */
-void request_handler_set_response(Request_Handler_Response_t *request_handler_response, const HTTP_Status_Code status_code, const Http_Content_Type content_type, const char *response_data);
+void Http_Router_Set_Response(Request_Handler_Response_t *request_handler_response, const HTTP_Status_Code status_code, const Http_Content_Type content_type, const char *response_data);
 
 /**
  * @brief Handles a HTTP request and returns the response structure.
@@ -36,12 +35,12 @@ void request_handler_set_response(Request_Handler_Response_t *request_handler_re
  * @param request Pointer to the HTTP request structure.
  * @return Request_Handler_Response_t The HTTP response structure.
  */
-Request_Handler_Response_t request_handler_handle_request(RouteRegistry *registry, Http_Request *request);
+Request_Handler_Response_t Http_Router_Handle_Request(RouteRegistry *registry, Http_Request *request);
 
 /**
  * @brief Frees the memory allocated for a Request_Handler_Response_t structure.
  * @param request_handler_response Pointer to the Request_Handler_Response_t structure to free.
  */
-void dispose_request_handler_response(Request_Handler_Response_t *request_handler_response);
+void Http_Router_Dispose_Response(Request_Handler_Response_t *request_handler_response);
 
 #endif /* HTTP_ROUTER_H */

@@ -2,7 +2,16 @@
 #define ROUTE_REGISTRY_H
 
 #include "../query_parameters/query_parameters.h"
-#include "../../http/http.h"
+#include "http/http.h"
+
+/**
+ * @brief Result codes for route registry operations
+ */
+typedef enum RouteRegistry_Result_t
+{
+    ROUTE_REGISTRY_RESULT_ERROR = -1,
+    ROUTE_REGISTRY_RESULT_OK = 0
+} RouteRegistry_Result_t;
 
 /**
  * @brief Structure to hold the result of an API call.
@@ -28,7 +37,7 @@ typedef HTTP_Status_Code (*RouteHandler)(QueryParameters_t *params, Request_Hand
 /**
  * @brief Single route entry in the registry
  */
-typedef struct
+typedef struct RouteRegistry_Entry
 {
     const char *path;           /* Route path (e.g., "/v1/weather") */
     const char *method;         /* HTTP method (e.g., "GET") */
@@ -52,7 +61,7 @@ typedef struct RouteRegistry
  * @param capacity Initial capacity of the registry
  * @return Pointer to the created registry, or NULL on error
  */
-bool route_registry_create(RouteRegistry *registry, size_t capacity);
+bool Route_Registry_Create(RouteRegistry *registry, size_t capacity);
 
 /**
  * @brief Register a new route
@@ -63,7 +72,7 @@ bool route_registry_create(RouteRegistry *registry, size_t capacity);
  * @param handler Function pointer to handle this route
  * @return 0 on success, -1 on error
  */
-int route_registry_register(RouteRegistry *registry, const char *path, const char *method, size_t args_count, RouteHandler handler, void *context);
+RouteRegistry_Result_t Route_Registry_Register(RouteRegistry *registry, const char *path, Http_Method method, size_t args_count, RouteHandler handler, void *context);
 
 /**
  * @brief Find and execute a handler for a request
@@ -74,12 +83,12 @@ int route_registry_register(RouteRegistry *registry, const char *path, const cha
  * @param response HTTP response to populate
  * @return HTTP status code from the handler
  */
-HTTP_Status_Code route_registry_dispatch(RouteRegistry *registry, const char *path, const char *method, Request_Handler_Response_t *request_handler_response);
+HTTP_Status_Code Route_Registry_Dispatch(RouteRegistry *registry, const char *path, const char *method, Request_Handler_Response_t *request_handler_response);
 
 /**
  * @brief Free all resources associated with the registry
  * @param registry Pointer to the registry
  */
-void route_registry_dispose(RouteRegistry *registry);
+void Route_Registry_Dispose(RouteRegistry *registry);
 
 #endif /* ROUTE_REGISTRY_H */

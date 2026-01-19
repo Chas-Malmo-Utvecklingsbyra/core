@@ -183,15 +183,15 @@ Http_Request* Http_Parser_Parse(const char* buffer)
 
             if (strcmp(method, "POST") == 0)
             {
-                request->start_line.method = POST;
+                request->start_line.method = HTTP_METHOD_POST;
             }
             else if (strcmp(method, "GET") == 0)
             {
-                request->start_line.method = GET;
+                request->start_line.method = HTTP_METHOD_GET;
             }
             else if (strcmp(method, "OPTIONS") == 0)
             {
-                request->start_line.method = OPTIONS;
+                request->start_line.method = HTTP_METHOD_OPTIONS;
             }
             else
             {
@@ -214,7 +214,7 @@ Http_Request* Http_Parser_Parse(const char* buffer)
         is_first_line = false;
     }
 
-    if (has_found_body && request->start_line.method == POST)
+    if (has_found_body && request->start_line.method == HTTP_METHOD_POST)
     {
         char* header_value = Http_Request_Get_Value_From_Key(request, "Content-Length");
 
@@ -247,13 +247,13 @@ char* Http_Request_Get_Method_String(const Http_Request* request)
 {
     switch (request->start_line.method)
     {
-        case POST:
+        case HTTP_METHOD_POST:
             return "POST";
 
-        case GET:
+        case HTTP_METHOD_GET:
             return "GET";
 
-        case OPTIONS:
+        case HTTP_METHOD_OPTIONS:
             return "OPTIONS";
 
         default:

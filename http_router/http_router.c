@@ -54,7 +54,7 @@ static void request_handler_set_error_response(Request_Handler_Response_t *reque
     }
 }
 
-void request_handler_set_response(Request_Handler_Response_t *request_handler_response, const HTTP_Status_Code status_code, const Http_Content_Type content_type, const char *response_data)
+void Http_Router_Set_Response(Request_Handler_Response_t *request_handler_response, const HTTP_Status_Code status_code, const Http_Content_Type content_type, const char *response_data)
 {
     if (request_handler_response == NULL)
         return;
@@ -76,18 +76,18 @@ void request_handler_set_response(Request_Handler_Response_t *request_handler_re
     }
 }
 
-Request_Handler_Response_t request_handler_handle_request(RouteRegistry *registry, Http_Request *request)
+Request_Handler_Response_t Http_Router_Handle_Request(RouteRegistry *registry, Http_Request *request)
 {
     Request_Handler_Response_t response = {0};
     
     if (request == NULL)
     {
-        request_handler_set_response(&response, HTTP_STATUS_CODE_BAD_REQUEST, HTTP_CONTENT_TYPE_JSON, NULL);
+        Http_Router_Set_Response(&response, HTTP_STATUS_CODE_BAD_REQUEST, HTTP_CONTENT_TYPE_JSON, NULL);
         return response;
     }
     if (registry == NULL)
     {
-        request_handler_set_response(&response, HTTP_STATUS_CODE_INTERNAL_SERVER_ERROR, HTTP_CONTENT_TYPE_JSON, NULL);
+        Http_Router_Set_Response(&response, HTTP_STATUS_CODE_INTERNAL_SERVER_ERROR, HTTP_CONTENT_TYPE_JSON, NULL);
         return response;
     }
 
@@ -96,19 +96,19 @@ Request_Handler_Response_t request_handler_handle_request(RouteRegistry *registr
     char *method = Http_Request_Get_Method_String(request);
     if (strcmp(method, "OPTIONS") == 0) /* Handle ALL OPTIONS requests */
     {
-        request_handler_set_response(&response, HTTP_STATUS_CODE_OK, HTTP_CONTENT_TYPE_HTML, "<h1>OPTIONS</h1>");
+        Http_Router_Set_Response(&response, HTTP_STATUS_CODE_OK, HTTP_CONTENT_TYPE_HTML, "<h1>OPTIONS</h1>");
         return response;
     }
     
-    HTTP_Status_Code result_code = route_registry_dispatch(registry, request->start_line.path, method, &response);
+    HTTP_Status_Code result_code = Route_Registry_Dispatch(registry, request->start_line.path, method, &response);
     if (result_code != HTTP_STATUS_CODE_OK) /* Ensure error response is set */
     {
-        request_handler_set_response(&response, result_code, response.content_type, NULL);
+        Http_Router_Set_Response(&response, result_code, response.content_type, NULL);
     }
     return response;
 }
 
-void dispose_request_handler_response(Request_Handler_Response_t *request_handler_response)
+void Http_Router_Dispose_Response(Request_Handler_Response_t *request_handler_response)
 {
     if (request_handler_response->response_data != NULL)
     {

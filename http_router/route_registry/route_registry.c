@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdio.h>
 
-bool route_registry_create(RouteRegistry *registry, size_t capacity)
+bool Route_Registry_Create(RouteRegistry *registry, size_t capacity)
 {
     if (registry == NULL || capacity <= 0)
         return false;
@@ -20,11 +20,12 @@ bool route_registry_create(RouteRegistry *registry, size_t capacity)
     return true;
 }
 
-int route_registry_register(RouteRegistry *registry, const char *path, const char *method, size_t args_count, RouteHandler handler, void *context)
+/* TODO: LS remove args count, should be done dynamically */
+RouteRegistry_Result_t Route_Registry_Register(RouteRegistry *registry, const char *path, Http_Method method, size_t args_count, RouteHandler handler, void *context)
 {
-    if (registry == NULL || path == NULL || method == NULL || handler == NULL)
+    if (registry == NULL || path == NULL || handler == NULL)
     {
-        return -1;
+        return ROUTE_REGISTRY_RESULT_ERROR;
     }
     
     if (registry->count >= registry->capacity)
@@ -33,16 +34,23 @@ int route_registry_register(RouteRegistry *registry, const char *path, const cha
         return -1; /* Registry full */
     }
 
+    char* method_str = Http_Get_Method_String(method);
+    
+    if (!method_str || strcmp(method_str, "UNDEFINED") == 0)
+    {
+        return ROUTE_REGISTRY_RESULT_ERROR; /* Invalid method */
+    }
+    
     registry->entries[registry->count].path = path;
-    registry->entries[registry->count].method = method;
+    registry->entries[registry->count].method = method_str;
     registry->entries[registry->count].args_count = args_count;
     registry->entries[registry->count].handler = handler;
     registry->entries[registry->count].context = context;
     registry->count++;
-    return 0; /* Success */
+    return ROUTE_REGISTRY_RESULT_OK; /* Success */
 }
 
-HTTP_Status_Code route_registry_dispatch(RouteRegistry *registry, const char *path, const char *method, Request_Handler_Response_t *request_handler_response)
+HTTP_Status_Code Route_Registry_Dispatch(RouteRegistry *registry, const char *path, const char *method, Request_Handler_Response_t *request_handler_response)
 {
     
     if (registry == NULL || path == NULL || method == NULL || request_handler_response == NULL)
@@ -82,7 +90,7 @@ HTTP_Status_Code route_registry_dispatch(RouteRegistry *registry, const char *pa
     return HTTP_STATUS_CODE_NOT_FOUND; /* No matching route found */
 }
 
-void route_registry_dispose(RouteRegistry *registry)
+void Route_Registry_Dispose(RouteRegistry *registry)
 {
     if (registry == NULL)
         return;

@@ -36,13 +36,13 @@ void on_received_bytes_from_client(void *context, TCP_Server *server, TCP_Server
         return;
     }
 
-    Request_Handler_Response_t request_handler_response = request_handler_handle_request(&http_server->route_registry, httpblob);
+    Request_Handler_Response_t request_handler_response = Http_Router_Handle_Request(&http_server->route_registry, httpblob);
 
     assert(request_handler_response.response_data != NULL);
 
     send_response_to_client(server, client, request_handler_response.response_data, request_handler_response.content_type, request_handler_response.status_code);
 
-    dispose_request_handler_response(&request_handler_response);
+    Http_Router_Dispose_Response(&request_handler_response);
     Http_Parser_Cleanup(&httpblob);
 }
 
@@ -53,7 +53,7 @@ bool HTTP_Server_Initialize(HTTP_Server* http_server, size_t max_connections)
     memset(http_server, 0, sizeof(HTTP_Server));
 
     /* TODO: LS - temp for init routes + magic number */
-    if (route_registry_create(&http_server->route_registry, 1) == false) //Check 0 here, temporary edited out
+    if (Route_Registry_Create(&http_server->route_registry, 1) == false) //Check 0 here, temporary edited out
     {
         printf("Failed to create route registry.\n");
         return false;
@@ -73,9 +73,9 @@ bool HTTP_Server_Initialize(HTTP_Server* http_server, size_t max_connections)
     return true;
 }
 
-bool HTTP_Server_Register_Route(HTTP_Server *http_server, const char *route, RouteHandler handler)
+bool HTTP_Server_Register_Route(HTTP_Server *http_server, const char *route, Http_Method method, RouteHandler handler)
 {
-    if(route_registry_register(&http_server->route_registry, route, "GET", 0, handler, NULL))    //TODO - add web-method      //TODO - Make method-enum     //TODO - Don't take argument count
+    if(Route_Registry_Register(&http_server->route_registry, route, method, 0, handler, NULL)) //TODO - Don't take argument count
     {
         return true;
     }
@@ -128,7 +128,7 @@ void HTTP_Server_Work(HTTP_Server* http_server)
 void HTTP_Server_Dispose(HTTP_Server* http_server)
 {
     assert(http_server != NULL);
-    route_registry_dispose(&http_server->route_registry);
+    Route_Registry_Dispose(&http_server->route_registry);
     tcp_server_dispose(&http_server->tcp_server);
     http_server->port = 0;
 }

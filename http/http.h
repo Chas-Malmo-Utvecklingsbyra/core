@@ -16,11 +16,28 @@ typedef enum HTTP_Status_Code
 
 } HTTP_Status_Code;
 
-typedef enum
+typedef enum Http_Content_Type
 {
     HTTP_CONTENT_TYPE_HTML,
     HTTP_CONTENT_TYPE_JSON
 } Http_Content_Type;
+
+typedef enum Http_Method
+{
+    HTTP_METHOD_UNDEFINED = -1,
+    HTTP_METHOD_GET = 0,
+    HTTP_METHOD_POST = 1,
+    HTTP_METHOD_PUT = 2,
+    HTTP_METHOD_DELETE = 3,
+    HTTP_METHOD_OPTIONS = 4
+} Http_Method;
+
+/**
+ * @brief Converts an Http_Method enum to its corresponding string representation.
+ * @param method The Http_Method enum value.
+ * @return char* The string representation of the HTTP method.
+ */
+char* Http_Get_Method_String(Http_Method method);
 
 bool http_create_response(uint8_t *buffer, uint32_t buffer_length, const char *body, uint32_t body_length, const HTTP_Status_Code http_status_code, uint32_t *out_bytes_written_to_buffer, Http_Content_Type content_type);
 
