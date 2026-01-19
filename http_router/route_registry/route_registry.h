@@ -32,7 +32,7 @@ typedef struct Request_Handler_Response_t
   * @param params Query parameters extracted from the request
   * @param response HTTP response structure to populate
   */
-typedef HTTP_Status_Code (*RouteHandler)(QueryParameters_t *params, Request_Handler_Response_t *response, void *context);
+typedef HTTP_Status_Code (*RouteHandler)(QueryParameters_t *params, Request_Handler_Response_t *response, void *route_context, void *registry_context);
 
 /**
  * @brief Single route entry in the registry
@@ -52,6 +52,7 @@ typedef struct RouteRegistry
 {
     RouteRegistry_Entry *entries;
     size_t count;
+    void *callback_context;
 } RouteRegistry;
 
 /**
@@ -59,7 +60,7 @@ typedef struct RouteRegistry
  * @param capacity Initial capacity of the registry
  * @return Pointer to the created registry, or NULL on error
  */
-bool Route_Registry_Create(RouteRegistry *registry);
+bool Route_Registry_Create(RouteRegistry *registry, void *context);
 
 /**
  * @brief Register a new route in the registry

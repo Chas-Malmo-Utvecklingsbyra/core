@@ -5,13 +5,14 @@
 #include "../route_matcher/route_matcher.h"
 #include "string/strdup.h"
 
-bool Route_Registry_Create(RouteRegistry *registry)
+bool Route_Registry_Create(RouteRegistry *registry, void *context)
 {
     if (registry == NULL)
         return false;
 
     registry->entries = NULL;
     registry->count = 0;
+    registry->callback_context = context;
     
     return true;
 }
@@ -82,7 +83,7 @@ HTTP_Status_Code Route_Registry_Dispatch(RouteRegistry *registry, const char *pa
                 }
             }
             /* Call the handler, expected to return HTTP status code */
-            HTTP_Status_Code status_code = registry->entries[i].handler(&query_parameters, request_handler_response, registry->entries[i].context);
+            HTTP_Status_Code status_code = registry->entries[i].handler(&query_parameters, request_handler_response, registry->entries[i].context, registry->callback_context);
             Query_Parameter_Dispose(&query_parameters);
             
             return status_code;

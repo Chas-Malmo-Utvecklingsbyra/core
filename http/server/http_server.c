@@ -46,13 +46,13 @@ void on_received_bytes_from_client(void *context, TCP_Server *server, TCP_Server
     Http_Parser_Cleanup(&httpblob);
 }
 
-bool HTTP_Server_Initialize(HTTP_Server* http_server, size_t max_connections)
+bool HTTP_Server_Initialize(HTTP_Server* http_server, size_t max_connections, void *context)
 {
     /* TODO: HW - Use this */
     (void)max_connections;
     memset(http_server, 0, sizeof(HTTP_Server));
 
-    if (Route_Registry_Create(&http_server->route_registry) == false)
+    if (Route_Registry_Create(&http_server->route_registry, context) == false)
     {
         printf("Failed to create route registry.\n");
         return false;
