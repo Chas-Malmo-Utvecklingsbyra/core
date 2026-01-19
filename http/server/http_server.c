@@ -74,7 +74,7 @@ bool HTTP_Server_Initialize(HTTP_Server* http_server, size_t max_connections)
 
 bool HTTP_Server_Register_Route(HTTP_Server *http_server, const char *route, Http_Method method, RouteHandler handler)
 {
-    if(Route_Registry_Register(&http_server->route_registry, route, method, handler, NULL))
+    if(Route_Registry_Register(&http_server->route_registry, route, method, handler, NULL) == ROUTE_REGISTRY_RESULT_OK)
     {
         return true;
     }
