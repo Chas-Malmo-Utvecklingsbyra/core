@@ -2,53 +2,68 @@
 #include <stdlib.h>
 #include <string.h>
 
-int query_parameter_create(QueryParameters_t *param, size_t capacity)
+/* TODO: LS Test */
+QueryParameter_Result_t Query_Parameter_Create(QueryParameters_t *param, size_t param_count)
 {
-    if (param == NULL || capacity == 0)
-    {
-        return -1; /* Invalid arguments */
-    }
+    if (!param || param_count == 0)
+        return QUERY_PARAMETER_RESULT_ERROR; /* Invalid arguments */
 
-    param->keys = (char **)malloc(sizeof(char *) * capacity);
-    param->values = (char **)malloc(sizeof(char *) * capacity);
-    if (param->keys == NULL || param->values == NULL)
+    param->keys = (char **)malloc(sizeof(char *) * param_count);
+    if (param->keys == NULL)
     {
-        free(param->keys);
-        free(param->values);
-        return -1; /* Memory allocation failure */
+        return QUERY_PARAMETER_RESULT_ALLOC_FAILURE; /* Memory allocation failure */
+    }
+    
+    param->values = (char **)malloc(sizeof(char *) * param_count);
+    if (param->values == NULL)
+    {
+        if (param->keys != NULL)
+            free(param->keys);
+        
+        return QUERY_PARAMETER_RESULT_ALLOC_FAILURE; /* Memory allocation failure */
     }
 
     /* Allocate memory for each key and value */
-    for (size_t i = 0; i < capacity; i++)
+    for (size_t i = 0; i < param_count; i++)
     {
         param->keys[i] = (char *)malloc(sizeof(char) * QUERY_PARAMETER_MAX_LENGTH);
-        param->values[i] = (char *)malloc(sizeof(char) * QUERY_PARAMETER_MAX_LENGTH);
-        if (param->keys[i] == NULL || param->values[i] == NULL)
+        if (param->keys[i] == NULL) /* allocation check */
         {
-            /* Free previously allocated memory on failure */
-            for (size_t j = 0; j <= i; j++)
+            for (size_t j = 0; j < i; j++) /* Free previously allocated memory on failure */
             {
-                free(param->keys[j]);
-                free(param->values[j]);
+                if(param->keys[j] != NULL)
+                    free(param->keys[j]);
+                if (param->values[j] != NULL)
+                    free(param->values[j]);
             }
             free(param->keys);
             free(param->values);
-            return -1; /* Memory allocation failure */
+            return QUERY_PARAMETER_RESULT_ALLOC_FAILURE; /* Memory allocation failure */
+        }
+        
+        param->values[i] = (char *)malloc(sizeof(char) * QUERY_PARAMETER_MAX_LENGTH);
+        if (param->values[i] == NULL) /* allocation check */
+        {
+            for (size_t j = 0; j <= i; j++) /* Free previously allocated memory on failure */
+            {
+                if(param->keys[j] != NULL)
+                    free(param->keys[j]);
+                if(param->values[j] != NULL)
+                    free(param->values[j]);
+            }
+            free(param->keys);
+            free(param->values);
+            return QUERY_PARAMETER_RESULT_ALLOC_FAILURE; /* Memory allocation failure */
         }
     }
-
     param->count = 0;
-    param->capacity = capacity;
-
-    return 0; /* Success */
+    return QUERY_PARAMETER_RESULT_OK; /* Success */
 }
 
-int query_parameter_parse(QueryParameters_t *param, const char *path)
+QueryParameter_Result_t Query_Parameter_Parse(QueryParameters_t *param, const char *path)
 {
-    if (param == NULL || path == NULL)
-    {
-        return -1; /* Invalid arguments */
-    }
+    if (!param || !path)
+        return QUERY_PARAMETER_RESULT_ERROR; /* Invalid arguments */
 
     size_t number_of_params = 0;
     size_t key_index = 0;
@@ -57,56 +72,39 @@ int query_parameter_parse(QueryParameters_t *param, const char *path)
     /* Find the '?' to locate query string start */
     const char *query_start = strchr(path, '?');
     if (query_start == NULL)
-    {
-        return -1; /* No query parameters */
-    }
+        return QUERY_PARAMETER_RESULT_ERROR; /* No query parameters or invalid request */
 
     size_t path_length = strlen(path);
     size_t i = query_start - path;
     for (; i < path_length; i++)
     {
-        if (number_of_params >= param->capacity)
-        {
-            break; /* Reached maximum expected parameters, should be redone if optional parameters needed */
-        }
-
         if (path[i] == '?')
         {
             key_index = i + 1;
             if (key_index >= path_length)
-            {
-                return -1; /* No query parameters */
-            }
+                return QUERY_PARAMETER_RESULT_MALFORMED; /* No query parameters */
         }
         else if (path[i] == '=') /* End of parameter key, start of parameter value */
         {
             if (i == key_index)
-            {
-                return -1; /* Empty key, malformed URL */
-            }
-
+                return QUERY_PARAMETER_RESULT_MALFORMED; /* Empty key, malformed URL */
+            
             size_t key_length = (i - key_index);
             if (key_length >= QUERY_PARAMETER_MAX_LENGTH)
-            {
-                return -1; /* Key too long */
-            }
-
+                return QUERY_PARAMETER_RESULT_MALFORMED; /* Key too long */
+            
             strncpy(param->keys[number_of_params], &path[key_index], key_length);
             param->keys[number_of_params][key_length] = '\0';
 
             value_index = i + 1;
             if (value_index >= path_length || path[value_index] == '&')
-            {
-                return -1; /* Key but empty value, malformed URL, or should empty value be allowed? */
-            }
+                return QUERY_PARAMETER_RESULT_MALFORMED; /* Key but empty value, malformed URL, or should empty value be allowed? */
         }
         else if ((path[i] == '&' || i == path_length - 1)) /* End of parameter value, start of next key */
         {
             size_t value_length = (path[i] == '&') ? (i - value_index) : (i - value_index + 1);
             if (value_length >= QUERY_PARAMETER_MAX_LENGTH)
-            {
-                return -1; /* Value too long */
-            }
+                return QUERY_PARAMETER_RESULT_MALFORMED; /* Value too long */
 
             strncpy(param->values[number_of_params], &path[value_index], value_length);
             param->values[number_of_params][value_length] = '\0';
@@ -117,10 +115,25 @@ int query_parameter_parse(QueryParameters_t *param, const char *path)
     }
     param->count = number_of_params;
 
-    return 0;
+    return QUERY_PARAMETER_RESULT_OK;
 }
 
-const char *query_parameter_get(QueryParameters_t *param, const char *key)
+size_t Query_Parameter_Get_Param_Count(const char* path)
+{
+    const char *query_start = strchr(path, '?');
+    if (query_start == NULL)
+        return 0; /* No query parameters or invalid request */
+
+    size_t total_params = 1;
+    for (size_t i = query_start - path; i < strlen(path); i++)
+    {
+        if (path[i] == '&')
+            total_params++;
+    }
+    return total_params;
+}
+
+const char *Query_Parameter_Get(QueryParameters_t *param, const char *key)
 {
     if (param == NULL || key == NULL)
     {
@@ -136,16 +149,16 @@ const char *query_parameter_get(QueryParameters_t *param, const char *key)
     return NULL; /* Key not found */
 }
 
-void query_parameter_dispose(QueryParameters_t *param)
+void Query_Parameter_Dispose(QueryParameters_t *param)
 {
-    if (param == NULL || param->capacity == 0)
+    if (param == NULL || param->count <= 0)
     {
         return;
     }
 
     if (param->keys != NULL)
     {
-        for (size_t i = 0; i < param->capacity; i++)
+        for (size_t i = 0; i < param->count; i++)
         {
             if (param->keys[i] == NULL) continue;
             free(param->keys[i]);
@@ -157,7 +170,7 @@ void query_parameter_dispose(QueryParameters_t *param)
 
     if (param->values != NULL)
     {
-        for (size_t i = 0; i < param->capacity; i++)
+        for (size_t i = 0; i < param->count; i++)
         {
             if (param->values[i] == NULL) continue;
             free(param->values[i]);

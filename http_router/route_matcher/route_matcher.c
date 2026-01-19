@@ -41,23 +41,19 @@ static bool route_matcher_matches_path(const char *request_path, const char *rou
     return false;
 }
 
-bool route_matcher_matches(const char *request_path, const char *request_method, const char *route_pattern, const char *route_method)
+bool Route_Matcher_Matches(const char *request_path, Http_Method request_method, const char *route_pattern, Http_Method route_method)
 {
-    if (request_method == NULL || route_method == NULL)
-    {
+    if (!request_path || !route_pattern)
         return false;
-    }
-
-    if (strcmp(request_method, route_method) != 0)
-    {
+    
+    if (request_method != route_method)
         return false;
-    }
-
+    
     return route_matcher_matches_path(request_path, route_pattern);
 }
 
 /* Not used atm TODO: LS remove? */
-int route_matcher_extract_path(const char *full_path, char *buffer, size_t buffer_size)
+int Route_Matcher_Extract_Path(const char *full_path, char *buffer, size_t buffer_size)
 {
     if (full_path == NULL || buffer == NULL || buffer_size == 0)
         return -1;

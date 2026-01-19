@@ -52,8 +52,7 @@ bool HTTP_Server_Initialize(HTTP_Server* http_server, size_t max_connections)
     (void)max_connections;
     memset(http_server, 0, sizeof(HTTP_Server));
 
-    /* TODO: LS - temp for init routes + magic number */
-    if (Route_Registry_Create(&http_server->route_registry, 1) == false) //Check 0 here, temporary edited out
+    if (Route_Registry_Create(&http_server->route_registry) == false)
     {
         printf("Failed to create route registry.\n");
         return false;
@@ -75,7 +74,7 @@ bool HTTP_Server_Initialize(HTTP_Server* http_server, size_t max_connections)
 
 bool HTTP_Server_Register_Route(HTTP_Server *http_server, const char *route, Http_Method method, RouteHandler handler)
 {
-    if(Route_Registry_Register(&http_server->route_registry, route, method, 0, handler, NULL)) //TODO - Don't take argument count
+    if(Route_Registry_Register(&http_server->route_registry, route, method, handler, NULL))
     {
         return true;
     }

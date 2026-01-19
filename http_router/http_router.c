@@ -1,6 +1,8 @@
 #include "http_router.h"
 #include <stdio.h>
 
+#include "string/strdup.h"
+
 /* TODO: LS - Change response types to enums */
 /* TODO: LS - Add logging for request handling */
 /* TODO: LS - request_handler_register_routes fix parameter count magic number */
@@ -93,8 +95,8 @@ Request_Handler_Response_t Http_Router_Handle_Request(RouteRegistry *registry, H
 
     request_handler_response_init(&response);
 
-    char *method = Http_Request_Get_Method_String(request);
-    if (strcmp(method, "OPTIONS") == 0) /* Handle ALL OPTIONS requests */
+    Http_Method method = request->start_line.method;
+    if (method == HTTP_METHOD_OPTIONS) /* Handle ALL OPTIONS requests */
     {
         Http_Router_Set_Response(&response, HTTP_STATUS_CODE_OK, HTTP_CONTENT_TYPE_HTML, "<h1>OPTIONS</h1>");
         return response;
