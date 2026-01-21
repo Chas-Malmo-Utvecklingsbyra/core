@@ -5,7 +5,7 @@
 #include "../route_matcher/route_matcher.h"
 #include "string/strdup.h"
 
-bool Route_Registry_Create(RouteRegistry *registry, void *context)
+bool Route_Registry_Create(Route_Registry *registry, void *context)
 {
     if (registry == NULL)
         return false;
@@ -17,7 +17,7 @@ bool Route_Registry_Create(RouteRegistry *registry, void *context)
     return true;
 }
 
-RouteRegistry_Result_t Route_Registry_Register(RouteRegistry *registry, const char *path, Http_Method method, RouteHandler handler, void *context)
+Route_Registry_Result_t Route_Registry_Register(Route_Registry *registry, const char *path, Http_Method method, RouteHandler handler, void *context)
 {
     if (registry == NULL || path == NULL || handler == NULL || method == HTTP_METHOD_UNDEFINED)
     {
@@ -26,13 +26,13 @@ RouteRegistry_Result_t Route_Registry_Register(RouteRegistry *registry, const ch
 
     if(registry->entries == NULL)
     {
-        registry->entries = malloc(sizeof(RouteRegistry_Entry) * 1);
+        registry->entries = malloc(sizeof(Route_Registry_Entry) * 1);
         if (!registry->entries)
             return ROUTE_REGISTRY_RESULT_ERROR; /* Memory allocation failure */
     }
     else
     {
-        RouteRegistry_Entry* resized_entries = realloc(registry->entries, sizeof(RouteRegistry_Entry) * (registry->count + 1));
+        Route_Registry_Entry* resized_entries = realloc(registry->entries, sizeof(Route_Registry_Entry) * (registry->count + 1));
         if (!resized_entries)
             return ROUTE_REGISTRY_RESULT_ERROR; /* Memory allocation failure */
         
@@ -55,7 +55,7 @@ RouteRegistry_Result_t Route_Registry_Register(RouteRegistry *registry, const ch
     return ROUTE_REGISTRY_RESULT_OK; /* Success */
 }
 
-HTTP_Status_Code Route_Registry_Dispatch(RouteRegistry *registry, const char *path, Http_Method method, Request_Handler_Response_t *request_handler_response)
+HTTP_Status_Code Route_Registry_Dispatch(Route_Registry *registry, const char *path, Http_Method method, Route_Handler_Response_t *request_handler_response)
 {
     if (!registry || !path || method == HTTP_METHOD_UNDEFINED || !request_handler_response)
         return HTTP_STATUS_CODE_INTERNAL_SERVER_ERROR;
@@ -92,7 +92,7 @@ HTTP_Status_Code Route_Registry_Dispatch(RouteRegistry *registry, const char *pa
     return HTTP_STATUS_CODE_NOT_FOUND; /* No matching route found */
 }
 
-void Route_Registry_Dispose(RouteRegistry *registry)
+void Route_Registry_Dispose(Route_Registry *registry)
 {
     if (registry == NULL)
         return;

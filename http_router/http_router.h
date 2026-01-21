@@ -11,14 +11,6 @@
 #include "http/http.h"
 
 /**
- * @brief Initialize the request handler and register all routes.
- * Must be called once at application startup.
- * @return 0 on success, -1 on error
- * @note The route registry is created inside this function.
- */
-//int request_handler_register_routes(RouteRegistry *registry, int capacity); should be done somewhere else --- IGNORE ---
-
-/**
  * @brief Sets API result for responses with JSON content.
  * @param request_handler_response Pointer to the HTTP response structure.
  * @param status_code HTTP status status_code.
@@ -27,20 +19,20 @@
  * @return void
  * @note response_data should be NULL for error responses.
  */
-void Http_Router_Set_Response(Request_Handler_Response_t *request_handler_response, const HTTP_Status_Code status_code, const Http_Content_Type content_type, const char *response_data);
+void Http_Router_Set_Response(Route_Handler_Response_t *request_handler_response, const HTTP_Status_Code status_code, const Http_Content_Type content_type, const char *response_data);
 
 /**
  * @brief Handles a HTTP request and returns the response structure.
  * @param registry Pointer to the route registry.
  * @param request Pointer to the HTTP request structure.
- * @return Request_Handler_Response_t The HTTP response structure.
+ * @return Route_Handler_Response_t The HTTP response structure.
  */
-Request_Handler_Response_t Http_Router_Handle_Request(RouteRegistry *registry, Http_Request *request);
+Route_Handler_Response_t Http_Router_Handle_Request(Route_Registry *registry, Http_Request *request);
 
 /**
- * @brief Frees the memory allocated for a Request_Handler_Response_t structure.
- * @param request_handler_response Pointer to the Request_Handler_Response_t structure to free.
+ * @brief Frees the memory allocated for a Route_Handler_Response_t structure.
+ * @param request_handler_response Pointer to the Route_Handler_Response_t structure to free.
  */
-void Http_Router_Dispose_Response(Request_Handler_Response_t *request_handler_response);
+void Http_Router_Dispose_Response(Route_Handler_Response_t *request_handler_response);
 
 #endif /* HTTP_ROUTER_H */

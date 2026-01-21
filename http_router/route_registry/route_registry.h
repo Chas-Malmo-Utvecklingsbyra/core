@@ -7,11 +7,11 @@
 /**
  * @brief Result codes for route registry operations
  */
-typedef enum RouteRegistry_Result_t
+typedef enum Route_Registry_Result_t
 {
     ROUTE_REGISTRY_RESULT_ERROR = -1,
     ROUTE_REGISTRY_RESULT_OK = 0
-} RouteRegistry_Result_t;
+} Route_Registry_Result_t;
 
 /**
  * @brief Structure to hold the result of an API call.
@@ -20,47 +20,47 @@ typedef enum RouteRegistry_Result_t
  * @param content_type Content type of the response (JSON, HTML, etc.)
  * @note The response string has to be freed by the caller if not NULL.
  */
-typedef struct Request_Handler_Response_t
+typedef struct Route_Handler_Response_t
 {
     HTTP_Status_Code status_code;
     char *response_data;
     Http_Content_Type content_type;
-} Request_Handler_Response_t;
+} Route_Handler_Response_t;
 
 /**
   * @brief Function pointer type for route handlers
   * @param params Query parameters extracted from the request
   * @param response HTTP response structure to populate
   */
-typedef HTTP_Status_Code (*RouteHandler)(QueryParameters_t *params, Request_Handler_Response_t *response, void *route_context, void *registry_context);
+typedef HTTP_Status_Code (*RouteHandler)(QueryParameters_t *params, Route_Handler_Response_t *response, void *route_context, void *registry_context);
 
 /**
  * @brief Single route entry in the registry
  */
-typedef struct RouteRegistry_Entry
+typedef struct Route_Registry_Entry
 {
     const char *path;           /* Route path (e.g., "/v1/weather") */
     Http_Method method;         /* HTTP method (e.g., "GET") */
     RouteHandler handler;       /* Handler function for this route */
     void *context;              /* Optional context pointer for user data */
-} RouteRegistry_Entry;
+} Route_Registry_Entry;
 
 /**
  * @brief Route registry - manages all registered routes
  */
-typedef struct RouteRegistry
+typedef struct Route_Registry
 {
-    RouteRegistry_Entry *entries;
+    Route_Registry_Entry *entries;
     size_t count;
     void *callback_context;
-} RouteRegistry;
+} Route_Registry;
 
 /**
  * @brief Create a new route registry
  * @param capacity Initial capacity of the registry
  * @return Pointer to the created registry, or NULL on error
  */
-bool Route_Registry_Create(RouteRegistry *registry, void *context);
+bool Route_Registry_Create(Route_Registry *registry, void *context);
 
 /**
  * @brief Register a new route in the registry
@@ -71,7 +71,7 @@ bool Route_Registry_Create(RouteRegistry *registry, void *context);
  * @param context Optional context pointer for user data
  * @return Result code indicating success or failure
  */
-RouteRegistry_Result_t Route_Registry_Register(RouteRegistry *registry, const char *path, Http_Method method, RouteHandler handler, void *context);
+Route_Registry_Result_t Route_Registry_Register(Route_Registry *registry, const char *path, Http_Method method, RouteHandler handler, void *context);
 
 /**
  * @brief Dispatch a request to the appropriate route handler
@@ -81,12 +81,12 @@ RouteRegistry_Result_t Route_Registry_Register(RouteRegistry *registry, const ch
  * @param request_handler_response Pointer to the response structure to populate
  * @return HTTP status code from the handler, or error code if no match found
  */
-HTTP_Status_Code Route_Registry_Dispatch(RouteRegistry *registry, const char *path, Http_Method method, Request_Handler_Response_t *request_handler_response);
+HTTP_Status_Code Route_Registry_Dispatch(Route_Registry *registry, const char *path, Http_Method method, Route_Handler_Response_t *request_handler_response);
 
 /**
  * @brief Free all resources associated with the registry
  * @param registry Pointer to the registry
  */
-void Route_Registry_Dispose(RouteRegistry *registry);
+void Route_Registry_Dispose(Route_Registry *registry);
 
 #endif /* ROUTE_REGISTRY_H */

@@ -12,7 +12,7 @@ typedef struct
 {
     TCP_Server tcp_server;
     uint16_t port;
-    RouteRegistry route_registry;    
+    Route_Registry route_registry;    
 } HTTP_Server;
 
 // void-pointers?

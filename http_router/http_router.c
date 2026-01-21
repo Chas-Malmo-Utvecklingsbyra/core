@@ -7,7 +7,7 @@
 /* TODO: LS - Add logging for request handling */
 /* TODO: LS - request_handler_register_routes fix parameter count magic number */
 
-static int request_handler_response_init(Request_Handler_Response_t *request_handler_response)
+static int request_handler_response_init(Route_Handler_Response_t *request_handler_response)
 {
     if (request_handler_response == NULL)
         return -1;
@@ -19,7 +19,7 @@ static int request_handler_response_init(Request_Handler_Response_t *request_han
     return 0;
 }
 
-static void request_handler_set_error_response(Request_Handler_Response_t *request_handler_response)
+static void request_handler_set_error_response(Route_Handler_Response_t *request_handler_response)
 {
     if (request_handler_response == NULL)
         return;
@@ -56,7 +56,7 @@ static void request_handler_set_error_response(Request_Handler_Response_t *reque
     }
 }
 
-void Http_Router_Set_Response(Request_Handler_Response_t *request_handler_response, const HTTP_Status_Code status_code, const Http_Content_Type content_type, const char *response_data)
+void Http_Router_Set_Response(Route_Handler_Response_t *request_handler_response, const HTTP_Status_Code status_code, const Http_Content_Type content_type, const char *response_data)
 {
     if (request_handler_response == NULL)
         return;
@@ -78,9 +78,9 @@ void Http_Router_Set_Response(Request_Handler_Response_t *request_handler_respon
     }
 }
 
-Request_Handler_Response_t Http_Router_Handle_Request(RouteRegistry *registry, Http_Request *request)
+Route_Handler_Response_t Http_Router_Handle_Request(Route_Registry *registry, Http_Request *request)
 {
-    Request_Handler_Response_t response = {0};
+    Route_Handler_Response_t response = {0};
     
     if (request == NULL)
     {
@@ -110,7 +110,7 @@ Request_Handler_Response_t Http_Router_Handle_Request(RouteRegistry *registry, H
     return response;
 }
 
-void Http_Router_Dispose_Response(Request_Handler_Response_t *request_handler_response)
+void Http_Router_Dispose_Response(Route_Handler_Response_t *request_handler_response)
 {
     if (request_handler_response->response_data != NULL)
     {
