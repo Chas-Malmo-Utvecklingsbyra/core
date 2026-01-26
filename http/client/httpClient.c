@@ -1,8 +1,15 @@
+#define _POSIX_C_SOURCE 200809L
+
 #include "httpClient.h"
 
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <arpa/inet.h>
+
 #include "../../utils/min.h"
 #include "../../http/parser.h"
 
@@ -74,6 +81,37 @@ int HTTPClient_Initiate(HTTPClient* _Client, HTTPClient_Callback_On_Received_Ful
     return 0;
 }
 
+char* HTTPClient_IP_GET(const char* hostname)
+{
+    struct addrinfo hints, *result, *rp;
+    int s;
+
+    //printf("HOSTNAME: [%s]\n", hostname);
+
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+
+    s = getaddrinfo(hostname, NULL, &hints, &result);
+    if (s != 0) {
+        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(s));
+        return NULL;
+    }
+
+    char* ip_buffer = (char*)malloc(INET_ADDRSTRLEN + 1);
+    memset(ip_buffer, 0, INET_ADDRSTRLEN+1);
+
+    for (rp = result; rp != NULL; rp = rp->ai_next) {
+        struct sockaddr_in *ipv4 = (struct sockaddr_in *)rp->ai_addr;
+        inet_ntop(AF_INET, &ipv4->sin_addr, ip_buffer, INET_ADDRSTRLEN+1);
+        printf("WEIRD IPS: %s\n", ip_buffer);
+    }
+
+    freeaddrinfo(result);
+
+    return ip_buffer;
+}
+
 int HTTPClient_GET(HTTPClient* _Client, const char* _URL, const char *route)
 {
 	_Client->buffer = malloc(4096);
@@ -81,14 +119,17 @@ int HTTPClient_GET(HTTPClient* _Client, const char* _URL, const char *route)
 		return -1;
 
 	snprintf((char*)_Client->buffer, 4096, "GET %s HTTP/1.1\r\nHost: %s\r\nConnection: close\r\n\r\n", route, _URL);
+    printf("BUFFER IN GET: [%s]\n", (char*)_Client->buffer);
 
 	_Client->bufferPtr = _Client->buffer;
     
-    const char *IP = NULL;
+    const char *hostname = _URL;
+
+    char *IP = HTTPClient_IP_GET(hostname);
+
+    printf("NEW IP: [%s]\n", IP);
     
     //temp until we implement a dns-function --- TODO
-    IP = _URL;
-
     // if(domain) lookup IP --- send IP to next row
 
     if(IP == NULL){
@@ -96,13 +137,18 @@ int HTTPClient_GET(HTTPClient* _Client, const char* _URL, const char *route)
         return -1;
     }
     
-    TCP_Client_Result tcp_client_result = tcp_client_connect(&_Client->tcp_client, IP, 10280);
+    TCP_Client_Result tcp_client_result = tcp_client_connect(&_Client->tcp_client, IP, 80);
 
     if (tcp_client_result != TCP_Client_Result_OK){
         printf("TCP Client Connect Error: %d\n", tcp_client_result);
+        free(IP);
+        IP = NULL;
+
         return -1;
     }
 
+    free(IP);
+    IP = NULL;
     return 0;
 }
 
@@ -112,6 +158,7 @@ void HTTP_TCP_Client_Callback_On_Connect(TCP_Client *client){
     
     printf("[CLIENT] I successfully connected!\n");
     http_client->state = HTTPClient_State_Transmit;
+    printf("BUFFER WHEN SENDING: [%s]\n", (char*)http_client->buffer);
     tcp_client_send(client, &http_client->buffer[0], strlen((char*)http_client->buffer));
 }
 
