@@ -11,8 +11,9 @@ typedef void(*Argument_Callback)(void);
 
 typedef enum
 {
-    Argument_Option_Has_Argument,
-    Argument_Option_Has_No_Argument    
+    Argument_Option_Integer,
+    Argument_Option_String,
+    Argument_Option_None
 } Argument_Option;
 
 typedef struct
@@ -38,12 +39,24 @@ typedef struct
 
 /*
     cli: The CLI instance
-    argument: The long argument for example: 'help', which will be turned into --help.
-    shortcut_argument: The shortcut argument for example: 'h', which will be turned into -h.
-    callback: Callback function, which is called when the argument is used
+    full_arg: The long argument for example: 'help', which will be turned into --help.
+    short_cut: The shortcut argument for example: 'h', which will be turned into -h.
+    option: Should it be parsed as a string or an integer? (Argument_Option_String || Argument_Option_Integer)
+    out_data: Gives the data that was passed in as argument
+
+    returns: true on success and false on fail
 */
-int CLI_Argument_Add(CLI *cli, const char* full_arg, const char* short_cut, Argument_Option option, void* out_data);
-int CLI_Argument_Non_Add(CLI *cli, const char* full_arg, const char* short_cut, Argument_Callback callback);
+bool CLI_Argument_Add(CLI *cli, const char* full_arg, const char* short_cut, Argument_Option option, void* out_data);
+
+/*
+    cli: The CLI instance
+    full_arg: The long argument for example: 'help', which will be turned into --help.
+    short_cut: The shortcut argument for example: 'h', which will be turned into -h.
+    callback: Takes in a callback function that executes when the parameter is entered on main execution.
+
+    returns: true on success and false on fail
+*/
+bool CLI_Argument_Add_Callback(CLI *cli, const char* full_arg, const char* short_cut, Argument_Callback callback);
 
 bool CLI_Parse(CLI *cli, int argc, char **argv);
 
