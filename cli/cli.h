@@ -58,6 +58,12 @@ bool CLI_Argument_Add(CLI *cli, const char* full_arg, const char* short_cut, Arg
 */
 bool CLI_Argument_Add_Callback(CLI *cli, const char* full_arg, const char* short_cut, Argument_Callback callback);
 
+/* 
+    // WARNING: variables should always be checked even if CLI_Parse is succesful
+
+
+    returns: true if parse was successful else false
+*/
 bool CLI_Parse(CLI *cli, int argc, char **argv);
 
 #endif

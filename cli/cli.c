@@ -70,9 +70,10 @@ bool CLI_Argument_String_CMP(Argument_String* string, const char* argument)
 }
 
 
-// TODO: Add checks so you cant use multiple of same arguments
 bool CLI_Parse(CLI *cli, int argc, char **argv)
 {
+    // TODO: Add checks so you cant use multiple of same arguments
+    
     (void)argc;
 
     size_t index = 1;
