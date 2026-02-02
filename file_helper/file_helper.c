@@ -93,7 +93,8 @@ File_Helper_Result File_Helper_Write(const char *path, const char *filename, con
         return FILE_HELPER_RESULT_FAILURE;
 
     if (!File_Helper_Dir_Exists(path))
-        return FILE_HELPER_RESULT_NOT_FOUND;
+        if(File_Helper_Create_Dir(path) != FILE_HELPER_RESULT_SUCCESS)
+            return FILE_HELPER_RESULT_FAILURE;
 
     char full_path[MAX_PATH_LENGTH] = {0};
 
