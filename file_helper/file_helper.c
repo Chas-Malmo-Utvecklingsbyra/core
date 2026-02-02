@@ -4,6 +4,9 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <dirent.h>
+#include <time.h>
+#include "../string/strdup.h"
 
 #define MAX_PATH_LENGTH 4096
 
@@ -133,10 +136,10 @@ File_Helper_Result File_Helper_Read(const char *path, const char *filename, char
 {
     if (!path || !filename || !out_data || !out_data_size)
         return FILE_HELPER_RESULT_FAILURE;
-
+    
     if (!File_Helper_Dir_Exists(path))
         return FILE_HELPER_RESULT_NOT_FOUND;
-
+    
     char full_path[MAX_PATH_LENGTH] = {0};
     int res = snprintf(full_path, MAX_PATH_LENGTH, "%s/%s", path, filename);
     if (res < 0 || res >= MAX_PATH_LENGTH)
@@ -145,11 +148,11 @@ File_Helper_Result File_Helper_Read(const char *path, const char *filename, char
     FILE *file = fopen(full_path, "r");
     if (!file)
         return FILE_HELPER_RESULT_FAILURE;
-
+    
     fseek(file, 0, SEEK_END);
     long file_size = ftell(file);
     fseek(file, 0, SEEK_SET);
-
+    
     if (file_size < 0)
     {
         fclose(file);
@@ -195,6 +198,63 @@ File_Helper_Result File_Helper_Delete_File(const char *path, const char *filenam
 
     if (remove(full_path) != 0)
         return FILE_HELPER_RESULT_FAILURE;
+
+    return FILE_HELPER_RESULT_SUCCESS;
+}
+
+File_Helper_Result File_Helper_Get_Most_Recent_File(const char *path, char **out_filepath)
+{
+    if (!path || !out_filepath)
+        return FILE_HELPER_RESULT_FAILURE;
+
+    if (!File_Helper_Dir_Exists(path))
+        return FILE_HELPER_RESULT_NOT_FOUND;
+
+    DIR *dir = opendir(path);
+    if (!dir)
+        return FILE_HELPER_RESULT_FAILURE;
+
+    struct dirent *entry;
+    struct stat file_stat;
+    time_t most_recent_time = 0;
+    char most_recent_path[MAX_PATH_LENGTH] = {0};
+    bool found = false;
+
+    while ((entry = readdir(dir)) != NULL)
+    {
+        // Skip . and ..
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+            continue;
+
+        char full_path[MAX_PATH_LENGTH] = {0};
+        int result = snprintf(full_path, MAX_PATH_LENGTH, "%s/%s", path, entry->d_name);
+        if (result < 0 || result >= MAX_PATH_LENGTH)
+            continue;
+
+        if (stat(full_path, &file_stat) != 0)
+            continue;
+
+        // Only consider regular files
+        if (!S_ISREG(file_stat.st_mode))
+            continue;
+
+        if (!found || file_stat.st_mtime > most_recent_time)
+        {
+            most_recent_time = file_stat.st_mtime;
+            strncpy(most_recent_path, full_path, MAX_PATH_LENGTH - 1);
+            most_recent_path[MAX_PATH_LENGTH - 1] = '\0';
+            found = true;
+        }
+    }
+
+    closedir(dir);
+
+    if (!found)
+        return FILE_HELPER_RESULT_NOT_FOUND;
+
+    *out_filepath = strdup(most_recent_path);
+    if (!*out_filepath)
+        return FILE_HELPER_RESULT_ALLOCATION_FAILURE;
 
     return FILE_HELPER_RESULT_SUCCESS;
 }

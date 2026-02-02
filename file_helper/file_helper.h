@@ -90,4 +90,12 @@ File_Helper_Result File_Helper_Read(const char *path, const char *filename, char
  */
 File_Helper_Result File_Helper_Delete_File(const char *path, const char *filename);
 
+/**
+ * @brief Gets the path of the most recently modified file in a directory.
+ * @param path The directory path to search for the most recent file.
+ * @param out_filepath Pointer to store the full path of the most recent file (caller is responsible for freeing).
+ * @return FILE_HELPER_RESULT_SUCCESS on success, otherwise an error code.
+ */
+File_Helper_Result File_Helper_Get_Most_Recent_File(const char *path, char **out_filepath);
+
 #endif // FILE_HELPER_H
