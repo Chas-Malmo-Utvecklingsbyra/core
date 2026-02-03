@@ -98,4 +98,12 @@ File_Helper_Result File_Helper_Delete_File(const char *path, const char *filenam
  */
 File_Helper_Result File_Helper_Get_Most_Recent_File(const char *path, char **out_filepath);
 
+/**
+ * @brief Checks if a file is empty at the specified path with the given filename.
+ * @param path The directory path where the file is located.
+ * @param filename The name of the file to check.
+ * @return true if the file is empty or does not exist, false otherwise.
+ */
+bool File_Helper_Is_File_Empty(const char *path, const char *filename);
+
 #endif // FILE_HELPER_H

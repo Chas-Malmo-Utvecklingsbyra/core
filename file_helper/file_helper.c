@@ -259,3 +259,23 @@ File_Helper_Result File_Helper_Get_Most_Recent_File(const char *path, char **out
 
     return FILE_HELPER_RESULT_SUCCESS;
 }
+
+bool File_Helper_Is_File_Empty(const char *path, const char *filename)
+{
+    if (!path || !filename)
+        return true;
+        
+    char full_path[MAX_PATH_LENGTH] = {0};
+    int result = snprintf(full_path, MAX_PATH_LENGTH, "%s/%s", path, filename);
+    if (result < 0 || result >= MAX_PATH_LENGTH)
+        return true;
+        
+    if(!File_Helper_File_Exists(full_path))
+        return true;
+
+    struct stat file_stat;
+    if (stat(full_path, &file_stat) != 0)
+        return true;
+
+    return file_stat.st_size == 0;
+}
