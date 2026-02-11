@@ -23,6 +23,7 @@ typedef struct
 {
     const char *id;
     const char *path;
+    const char *file_name;
     Logger_Output_Type output_type;
 } Logger;
 
@@ -34,7 +35,7 @@ typedef struct
  * @param output_type Type of output for the logger.
  * @return LOGGER_RESULT_OK on success, otherwise an error code.
  */
-Logger_Result Logger_Init(Logger *logger, const char *id, const char *path, Logger_Output_Type output_type);
+Logger_Result Logger_Init(Logger *logger, const char *id, const char *path, const char *file_name, Logger_Output_Type output_type);
 
 /**
  * @brief Writes a log message using the specified logger.
