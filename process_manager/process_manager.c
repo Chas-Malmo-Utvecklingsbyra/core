@@ -51,15 +51,15 @@ pid_t ProcessManager_Spawn(ProcessManager *manager, const char *name, ProcessEnt
     if (manager == NULL || !manager->initialized || entry == NULL)
         return -1;
 
-    Logger *logger = (Logger *)context; // Store context for potential use in child processes
+    Logger *logger = (Logger *)manager->context; // Store context for potential use in child processes
     if (logger != NULL)
-        Logger_Write(logger, "[ProcessManager] Spawning process '%s'", name ? name : "unnamed");
+        Logger_Write(logger, "Spawning process %s", name);
     
     
     if (manager->process_count >= PROCESS_MANAGER_MAX_PROCESSES)
     {
-        if (logger != NULL)            
-            Logger_Write(logger, "[ProcessManager] Cannot spawn process '%s': max process limit reached", name ? name : "unnamed");
+        if (logger != NULL)
+            Logger_Write(logger,"Cannot spawn process %s: max process limit reached", name);
         return -1;
     }
 
@@ -75,14 +75,14 @@ pid_t ProcessManager_Spawn(ProcessManager *manager, const char *name, ProcessEnt
         if (pipe(proc->pipe_parent_to_child) == -1)
         {
             if (logger != NULL)
-                Logger_Write(logger, "[ProcessManager] Failed to create parent->child pipe");
+                Logger_Write(logger, "%s", "Failed to create parent->child pipe");
             return -1;
         }
 
         if (pipe(proc->pipe_child_to_parent) == -1)
         {
             if (logger != NULL)
-                Logger_Write(logger, "[ProcessManager] Failed to create child->parent pipe");
+                Logger_Write(logger, "%s", "Failed to create child->parent pipe");
             close(proc->pipe_parent_to_child[0]);
             close(proc->pipe_parent_to_child[1]);
             return -1;
@@ -95,7 +95,7 @@ pid_t ProcessManager_Spawn(ProcessManager *manager, const char *name, ProcessEnt
     {
         // Fork failed
         if (logger != NULL)
-            Logger_Write(logger, "[ProcessManager] Failed to fork process '%s': %s", name ? name : "unnamed", strerror(errno));
+            Logger_Write(logger,"Failed to fork process %s: %s", name ? name : "unnamed", strerror(errno));
         if (create_pipes)
         {
             close(proc->pipe_parent_to_child[0]);
@@ -133,7 +133,7 @@ pid_t ProcessManager_Spawn(ProcessManager *manager, const char *name, ProcessEnt
         manager->process_count++;
 
         if (logger != NULL)
-            Logger_Write(logger, "[ProcessManager] Spawned process '%s' with PID %d", proc->name, pid);
+            Logger_Write(logger, "Spawned process %s with PID %d", proc->name, pid);
 
         return pid;
     }
