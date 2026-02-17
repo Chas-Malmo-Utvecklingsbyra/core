@@ -2,6 +2,9 @@
 
 #include <string.h>
 
+// TODO: To complete Thread_Pool
+// Add a Queue so if all threads are in use then the new task is placed in Queue
+
 void* thread_worker(Thread_Item* thread_item)
 {
     while (1)
@@ -17,7 +20,6 @@ void* thread_worker(Thread_Item* thread_item)
 
         // return an enum and check if task is done, if done then return
         return thread_item->result;
-
     }
 
     return NULL;
@@ -32,7 +34,6 @@ void *callback(void *t)
 
 void Thread_Pool_Create(Thread_Pool *pool)
 {
-    printf("Created1\n");
     int i;
     for (i = 0; i < THREAD_POOL_SIZE; i++)
     {
@@ -43,7 +44,6 @@ void Thread_Pool_Create(Thread_Pool *pool)
         item->result = NULL;
         
         pthread_create(&item->thread, NULL, callback, item);
-        printf("Created2\n");
     }
 
 }
@@ -73,12 +73,18 @@ void Thread_Pool_Destroy(Thread_Pool *pool)
     for (i = 0; i < THREAD_POOL_SIZE; i++)
     {
         Thread_Item *item = &pool->threads[i];
+
+        if (item->in_use)
+            pthread_join(item->thread, NULL);
+        else
+            pthread_cancel(item->thread);
+
+
         memset(item, 0, sizeof(Thread_Item));
     }
 
     printf("Destroyed\n");
 
-    
     //remove any malloced resources    
     
 }
