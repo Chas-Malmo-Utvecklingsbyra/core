@@ -244,6 +244,37 @@ Config_Result Config_Add_Field(Config_t *cfg, const char *config_key, Config_Fie
     return Config_Result_OK;
 }
 
+Config_Result Config_Add_Array_Field(Config_t *cfg, const char *config_key, void *array_value)
+{
+    if (cfg == NULL || config_key == NULL || array_value == NULL) // not initialized
+        return Config_Result_Initialization_Error;
+
+    Config_Field_t *new_field = Config_Field_Init();
+    if (!new_field)
+        return Config_Result_Allocation_Error;
+
+    char *temp_field_name = strdup(config_key);
+    if (!temp_field_name)
+        return Config_Result_Allocation_Error;
+
+    /* Only supports arrays of strings currently */
+    char *temp_string_value = strdup((char *)array_value);
+    if (!temp_string_value)
+    {
+        free(temp_field_name);
+        return Config_Result_Allocation_Error;
+    }
+
+    new_field->config_key = temp_field_name;
+    new_field->config_value = temp_string_value;
+    new_field->field_type = Config_Field_Type_String_Array;
+    cfg->config_fields[cfg->config_field_count] = new_field;
+    cfg->config_field_count++;
+    new_field = NULL;
+
+    return Config_Result_OK;
+}
+
 char *Config_Get_Field_Value_String(Config_t *cfg, const char *key)
 {
     if (!cfg || !key)
@@ -256,6 +287,39 @@ char *Config_Get_Field_Value_String(Config_t *cfg, const char *key)
             if (cfg->config_fields[i]->field_type == Config_Field_Type_String)
             {
                 return (char *)cfg->config_fields[i]->config_value;
+            }
+            else
+            {
+                return NULL; /* Type mismatch */
+            }
+        }
+    }
+    return NULL; /* Key not found */
+}
+
+char *Config_Get_Field_Value_From_String_Array(Config_t *cfg, const char *key, size_t index)
+{
+    size_t index_counter = 0;
+    if (!cfg || !key)
+        return NULL;
+
+    for (size_t i = 0; i < cfg->config_field_count; i++)
+    {
+        if (strcmp(cfg->config_fields[i]->config_key, key) == 0)
+        {
+            
+            if (cfg->config_fields[i]->field_type == Config_Field_Type_String_Array)
+            {
+                    if (index_counter == index)
+                    {
+                        printf("Returning value for key '%s' at index %zu\n", key, index);
+                        return (char *)cfg->config_fields[i]->config_value;
+                    }
+                    else
+                    {
+                        index_counter++;
+                        continue;
+                    }
             }
             else
             {

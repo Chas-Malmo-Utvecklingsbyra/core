@@ -8,6 +8,7 @@
 #include <sys/wait.h>
 #include <errno.h>
 #include "logger/logger.h"
+#include "string/strdup.h"
 
 static pid_t g_initialize_pid = 0;
 
@@ -51,7 +52,7 @@ pid_t ProcessManager_Spawn(ProcessManager *manager, const char *name, ProcessEnt
     if (manager == NULL || !manager->initialized || entry == NULL)
         return -1;
 
-    Logger *logger = (Logger *)manager->context; // Store context for potential use in child processes
+    Logger *logger = (Logger *)manager->context; 
     if (logger != NULL)
         Logger_Write(logger, "Spawning process %s", name);
     
@@ -139,6 +140,92 @@ pid_t ProcessManager_Spawn(ProcessManager *manager, const char *name, ProcessEnt
     }
 
     return -1;
+}
+
+pid_t ProcessManager_SpawnByExecutable(ProcessManager *manager, const char *name, const char *executable_path, char *const args[], bool create_pipes)
+{
+    if (manager == NULL || !manager->initialized || name == NULL || executable_path == NULL || args == NULL)
+        return -1;
+
+    Logger *logger = (Logger *)manager->context;
+    
+    if (logger != NULL)
+        Logger_Write(logger, "Spawning process %s", name);
+
+    if (manager->process_count >= PROCESS_MANAGER_MAX_PROCESSES)
+    {
+        if (logger != NULL)
+            Logger_Write(logger, "Cannot spawn process %s: max process limit reached", name);
+        return -1;
+    }
+
+    ManagedProcess *proc = &manager->processes[manager->process_count];
+    memset(proc, 0, sizeof(ManagedProcess));
+
+    strncpy(proc->name, name ? name : "unnamed", PROCESS_MANAGER_MAX_NAME_LENGTH - 1);
+    proc->has_pipes = create_pipes;
+
+    // Create pipes if requested
+    if (create_pipes)
+    {
+        if (pipe(proc->pipe_parent_to_child) == -1)
+        {
+            if (logger != NULL)
+                Logger_Write(logger, "%s", "Failed to create parent->child pipe");
+            return -1;
+        }
+
+        if (pipe(proc->pipe_child_to_parent) == -1)
+        {
+            if (logger != NULL)
+                Logger_Write(logger, "%s", "Failed to create child->parent pipe");
+            close(proc->pipe_parent_to_child[0]);
+            close(proc->pipe_parent_to_child[1]);
+            return -1;
+        }
+    }
+
+    pid_t pid = fork();
+    if (pid == 0)
+    {
+        // Child process - count args and prepare for execv
+        int argc = 0;
+        while (args[argc] != NULL)
+        {
+            argc++;
+        }
+
+        // Allocate: program name + args + NULL terminator
+        char **exec_args = calloc(argc + 2, sizeof(char *));
+        if (exec_args == NULL)
+        {
+            fprintf(stderr, "Failed to allocate exec_args\n");
+            exit(-1);
+        }
+
+        exec_args[0] = strdup(executable_path);
+        for (int i = 0; i < argc; i++)
+        {
+            exec_args[i + 1] = args[i];
+        }
+        exec_args[argc + 1] = NULL;
+
+        execv(executable_path, exec_args);
+
+        // If execv returns, it failed
+        perror("execv failed");
+        exit(-1);
+    }
+    else if (pid > 0)
+    {
+        Logger_Write(logger, "Spawned fetcher process with PID %d for command: %s", pid, executable_path);
+    }
+    else
+    {
+        Logger_Write(logger, "Failed to fork for fetcher process");
+    }
+    
+    return pid;
 }
 
 ManagedProcess *ProcessManager_GetByPID(ProcessManager *manager, pid_t pid)

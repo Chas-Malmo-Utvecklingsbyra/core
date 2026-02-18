@@ -80,6 +80,8 @@ void ProcessManager_Destroy(ProcessManager *manager);
  */
 pid_t ProcessManager_Spawn(ProcessManager *manager, const char *name, ProcessEntryPoint entry, void *context, bool create_pipes);
 
+pid_t ProcessManager_SpawnByExecutable(ProcessManager *manager, const char *name, const char *executable_path, char *const args[], bool create_pipes);
+
 /**
  * @brief Retrieves a managed process by its PID.
  * @param manager Pointer to the ProcessManager instance.

@@ -23,7 +23,9 @@ typedef enum Config_Field_Type_t
 {
     Config_Field_Type_String,
     Config_Field_Type_Integer,
-    Config_Field_Type_Boolean
+    Config_Field_Type_Boolean,
+    Config_Field_Type_String_Array,
+    Config_Field_Type_Object
 } Config_Field_Type_t;
 
 struct Config_Field_t
@@ -77,23 +79,27 @@ Config_Result Config_Fields_Init(Config_t *cfg, size_t field_capacity);
  */
 Config_Result Config_Add_Field(Config_t *cfg, const char *config_key, Config_Field_Type_t field_type, void *config_value);
 
+Config_Result Config_Add_Array_Field(Config_t * cfg, const char *config_key, void *array_value);
+
 /**
  * @brief Retrieves the string value of a configuration field by its key.
- * 
+ *
  * @param cfg Pointer to the Config_t structure.
  * @param config_key Key/name of the configuration field.
- * 
+ *
  * @return Pointer to the string value, or NULL if not found or type mismatch.
  */
-char* Config_Get_Field_Value_String(Config_t *cfg, const char *config_key);
+char *Config_Get_Field_Value_String(Config_t *cfg, const char *config_key);
+
+char *Config_Get_Field_Value_From_String_Array(Config_t *cfg, const char *key, size_t index);
 
 /**
  * @brief Retrieves the integer value of a configuration field by its key.
- * 
+ *
  * @param cfg Pointer to the Config_t structure.
  * @param config_key Key/name of the configuration field.
  * @param out_found Pointer to a boolean that will be set to true if the key is found and type matches, false otherwise.
- * 
+ *
  * @return The integer value of the configuration field, or 0 if not found or type mismatch.
  */
 int Config_Get_Field_Value_Integer(Config_t *cfg, const char *config_key, bool *out_found);
