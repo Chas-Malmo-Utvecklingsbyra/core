@@ -1,3 +1,4 @@
+#define _POSIX_C_SOURCE 200809L
 #include "file_helper.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -6,6 +7,7 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <time.h>
+#include <sys/file.h>
 #include "../string/strdup.h"
 
 #define MAX_PATH_LENGTH 4096
@@ -106,6 +108,8 @@ File_Helper_Result File_Helper_Write(const char *path, const char *filename, con
         return FILE_HELPER_RESULT_ALREADY_EXISTS;
 
     FILE *file;
+    int fd;
+    
     switch (mode)
     {
     case FILE_HELPER_MODE_WRITE:
@@ -123,13 +127,24 @@ File_Helper_Result File_Helper_Write(const char *path, const char *filename, con
     if (!file)
         return FILE_HELPER_RESULT_FAILURE;
 
-    size_t written = fwrite(data, 1, data_size, file);
-    if (written != data_size)
+    fd = fileno(file);
+
+    // Lock the file (blocks until lock is acquired)
+    if (flock(fd, LOCK_EX) != 0)
     {
         fclose(file);
         return FILE_HELPER_RESULT_FAILURE;
     }
+
+    size_t written = fwrite(data, 1, data_size, file);
+
+    flock(fd, LOCK_UN);
     fclose(file);
+
+    if (written != data_size)
+    {
+        return FILE_HELPER_RESULT_FAILURE;
+    }
     return FILE_HELPER_RESULT_SUCCESS;
 }
 

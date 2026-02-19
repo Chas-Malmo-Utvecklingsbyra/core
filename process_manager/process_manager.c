@@ -218,14 +218,37 @@ pid_t ProcessManager_SpawnByExecutable(ProcessManager *manager, const char *name
     }
     else if (pid > 0)
     {
-        Logger_Write(logger, "Spawned fetcher process with PID %d for command: %s", pid, executable_path);
+        // Parent process - register the child process
+        if (create_pipes)
+        {
+            // Close unused pipe ends
+            close(proc->pipe_parent_to_child[0]); // Close read end of parent->child
+            close(proc->pipe_child_to_parent[1]); // Close write end of child->parent
+        }
+
+        proc->pid = pid;
+        proc->status = PROCESS_STATUS_RUNNING;
+        manager->process_count++;
+
+        if (logger != NULL)
+            Logger_Write(logger, "Spawned fetcher process with PID %d for command: %s", pid, executable_path);
+
+        return pid;
     }
     else
     {
-        Logger_Write(logger, "Failed to fork for fetcher process");
+        // Fork failed
+        if (logger != NULL)
+            Logger_Write(logger, "Failed to fork for fetcher process");
+        if (create_pipes)
+        {
+            close(proc->pipe_parent_to_child[0]);
+            close(proc->pipe_parent_to_child[1]);
+            close(proc->pipe_child_to_parent[0]);
+            close(proc->pipe_child_to_parent[1]);
+        }
+        return -1;
     }
-    
-    return pid;
 }
 
 ManagedProcess *ProcessManager_GetByPID(ProcessManager *manager, pid_t pid)
