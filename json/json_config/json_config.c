@@ -59,9 +59,26 @@ Config_Result Config_Parse_Json(Config_t* cfg, const char* config_file_path)
         }
         else if(cJSON_IsArray(current_element) || cJSON_IsObject(current_element))
         {
-            // Nested objects/arrays are not supported
-            perror("Nested JSON objects/arrays are not supported in configuration files.\n");
-            continue;
+            size_t array_size = cJSON_GetArraySize(current_element);
+            if (array_size == 0)
+            {
+                current_element = NULL;
+                printf("Error: Array/Object field '%s' is empty.\n", config_key);
+                cJSON_Delete(root);
+                return Config_Result_Validation_Error;
+            }
+            for (size_t j = 0; j < array_size; j++)
+            {
+                cJSON *array_item = cJSON_GetArrayItem(current_element, j);
+                if (!array_item || !cJSON_IsString(array_item)) // For simplicity, we only support arrays of strings currently.
+                {
+                    current_element = NULL;
+                    printf("Error: Array/Object field '%s' contains invalid item at index %zu.\n", config_key, j);
+                    cJSON_Delete(root);
+                    return Config_Result_Validation_Error;
+                }
+                result = Config_Add_Array_Field(cfg, config_key, array_item->valuestring);
+            }
         }
         else
         {
