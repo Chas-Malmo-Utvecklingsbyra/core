@@ -45,8 +45,40 @@ File_Helper_Result File_Helper_Create_Dir(const char *path)
         return FILE_HELPER_RESULT_ALREADY_EXISTS;
 
     // 0755 = rwxr-xr-x permissions
+
+    // If we cant create a directory straight away we try to create its parent directories
     if (mkdir(path, 0755) != 0)
-        return FILE_HELPER_RESULT_FAILURE;
+    {
+        size_t path_length = strlen(path);
+        char new_path[path_length + 1];
+        strncpy(new_path, path, path_length);
+        new_path[path_length] = '\0';
+
+        char* directory = strtok(new_path, "/");
+        char buffer[path_length + 1];
+
+        size_t position = 0;
+
+        while (directory != NULL)
+        {
+            size_t added_slash_length = strlen(directory)+2;
+            char added_slash_buffer[added_slash_length];
+            snprintf(added_slash_buffer, added_slash_length, "/%s", directory);
+
+            strncpy(&buffer[position], added_slash_buffer, path_length + 1);
+            position += strlen(added_slash_buffer);
+            
+            mkdir(buffer, 0755);
+
+            //printf("buffer: %s\n", buffer);
+            directory = strtok(NULL, "/");
+        }
+
+    }
+    else
+    {
+        printf("Did not enter this!\r\n");
+    }
 
     return FILE_HELPER_RESULT_SUCCESS;
 }
