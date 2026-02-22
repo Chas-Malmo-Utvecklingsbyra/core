@@ -9,7 +9,8 @@ project (PROJECT_NAME)
    kind "StaticLib"
    language "C"
    cdialect "C99"
-   targetdir "bin/%{cfg.buildcfg}"
+   targetdir "build/bin/%{cfg.buildcfg}"
+    objdir ("build/obj/%{cfg.buildcfg}")
 
    buildoptions { "-Wall", "-Wextra", "-Werror", "-Wpedantic" }
    links { "pthread", "curl" }
