@@ -57,3 +57,7 @@ dkms.conf
 # vs code files
 .vscode/
 data/*
+
+# premake5 build files
+Makefile
+Core.make
