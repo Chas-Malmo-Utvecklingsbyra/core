@@ -312,7 +312,6 @@ char *Config_Get_Field_Value_From_String_Array(Config_t *cfg, const char *key, s
             {
                     if (index_counter == index)
                     {
-                        printf("Returning value for key '%s' at index %zu\n", key, index);
                         return (char *)cfg->config_fields[i]->config_value;
                     }
                     else

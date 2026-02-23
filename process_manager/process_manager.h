@@ -80,6 +80,15 @@ void ProcessManager_Destroy(ProcessManager *manager);
  */
 pid_t ProcessManager_Spawn(ProcessManager *manager, const char *name, ProcessEntryPoint entry, void *context, bool create_pipes);
 
+/**
+ * @brief Spawns a new process by executing an external executable with arguments.
+ * @param manager Pointer to the ProcessManager instance.
+ * @param name Name of the process for identification.
+ * @param executable_path Path to the executable to run.
+ * @param args NULL-terminated array of argument strings (including the program name as args[0]).
+ * @param create_pipes Whether to create IPC pipes for communication with the child process.
+ * @return PID of the spawned process on success, -1 on failure.
+ */
 pid_t ProcessManager_SpawnByExecutable(ProcessManager *manager, const char *name, const char *executable_path, char *const args[], bool create_pipes);
 
 /**
@@ -113,6 +122,7 @@ size_t ProcessManager_GetRunningCount(ProcessManager *manager);
  * @return true on success, false on failure.
  */
 bool ProcessManager_SendSignal(ProcessManager *manager, pid_t pid, int signal);
+
 /**
  * @brief Sends a signal to a process by its name.
  * @param manager Pointer to the ProcessManager instance.
@@ -121,6 +131,7 @@ bool ProcessManager_SendSignal(ProcessManager *manager, pid_t pid, int signal);
  * @return true on success, false on failure.
  */
 bool ProcessManager_SendSignalByName(ProcessManager *manager, const char *name, int signal);
+
 /**
  * @brief Terminates all running processes managed by the process manager.
  * @param manager Pointer to the ProcessManager instance.

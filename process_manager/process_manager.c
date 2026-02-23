@@ -231,7 +231,7 @@ pid_t ProcessManager_SpawnByExecutable(ProcessManager *manager, const char *name
         manager->process_count++;
 
         if (logger != NULL)
-            Logger_Write(logger, "Spawned fetcher process with PID %d for command: %s", pid, executable_path);
+            Logger_Write(logger, "Spawned executable process with PID %d for command: %s", pid, executable_path);
 
         return pid;
     }
