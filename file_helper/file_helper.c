@@ -75,10 +75,6 @@ File_Helper_Result File_Helper_Create_Dir(const char *path)
         }
 
     }
-    else
-    {
-        printf("Did not enter this!\r\n");
-    }
 
     return FILE_HELPER_RESULT_SUCCESS;
 }

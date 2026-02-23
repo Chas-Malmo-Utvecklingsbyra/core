@@ -60,7 +60,7 @@ Logger_Result Logger_Write(Logger *logger, const char *format, ...)
             snprintf(internal_format_buffer, sizeof(internal_format_buffer), "[%s] [%s] %s\n", time_buffer, logger->id, format);
             vsnprintf(output_buffer, sizeof(output_buffer), internal_format_buffer, args);
             
-            printf("%s", output_buffer);
+            //printf("%s", output_buffer);
             break;
         
         case LOGGER_OUTPUT_TYPE_FILE_JSON: /* WIP, DONT USE */

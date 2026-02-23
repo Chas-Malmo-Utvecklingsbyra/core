@@ -103,7 +103,7 @@ bool CLI_Parse(CLI *cli, int argc, char **argv)
                     {
                         int converted_int = atoi(ptr);
                         
-                        printf("%s ptr to parse in CLI_Parse \n", ptr);
+                        /* printf("%s ptr to parse in CLI_Parse \n", ptr); */
 
                         if (converted_int == 0)
                             return false;
