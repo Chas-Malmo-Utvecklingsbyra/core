@@ -53,9 +53,6 @@ pid_t ProcessManager_Spawn(ProcessManager *manager, const char *name, ProcessEnt
         return -1;
 
     Logger *logger = (Logger *)manager->context; 
-    if (logger != NULL)
-        Logger_Write(logger, "Spawning process %s", name);
-    
     
     if (manager->process_count >= PROCESS_MANAGER_MAX_PROCESSES)
     {
@@ -148,10 +145,7 @@ pid_t ProcessManager_SpawnByExecutable(ProcessManager *manager, const char *name
         return -1;
 
     Logger *logger = (Logger *)manager->context;
-    
-    if (logger != NULL)
-        Logger_Write(logger, "Spawning process %s", name);
-
+        
     if (manager->process_count >= PROCESS_MANAGER_MAX_PROCESSES)
     {
         if (logger != NULL)
@@ -195,21 +189,49 @@ pid_t ProcessManager_SpawnByExecutable(ProcessManager *manager, const char *name
             argc++;
         }
 
-        // Allocate: program name + args + NULL terminator
-        char **exec_args = calloc(argc + 2, sizeof(char *));
+        // Allocate: program name + args + pipe FDs + NULL terminator
+        // If create_pipes is true, we need 2 extra args for the FDs but each arg is two strings and it needs to be null-terminated
+        char **exec_args = NULL;
+        if (create_pipes)
+        {
+            exec_args = calloc(argc + 4, sizeof(char *));
+        }
+        else
+        {
+            exec_args = calloc(argc + 2, sizeof(char *));
+        }
+        
         if (exec_args == NULL)
         {
             fprintf(stderr, "Failed to allocate exec_args\n");
             exit(-1);
         }
-
+        
         exec_args[0] = strdup(executable_path);
         for (int i = 0; i < argc; i++)
         {
             exec_args[i + 1] = args[i];
         }
-        exec_args[argc + 1] = NULL;
+        if (create_pipes)
+        {
+            char read_fd_arg[32] = "--read-fd"; // proc->pipe_parent_to_child[0]
+            char write_fd_arg[32] = "--write-fd"; // proc->pipe_child_to_parent[1]
+            
+            exec_args[argc + 1] = strdup(read_fd_arg);
+            sprintf(read_fd_arg, "%d", proc->pipe_parent_to_child[0]);
+            exec_args[argc + 2] = strdup(read_fd_arg);
 
+            exec_args[argc + 3] = strdup(write_fd_arg);
+            sprintf(write_fd_arg, "%d", proc->pipe_child_to_parent[1]);
+            exec_args[argc + 4] = strdup(write_fd_arg);
+            
+            exec_args[argc + 5] = NULL;
+        }
+        else
+        {
+            exec_args[argc + 1] = NULL;
+        }
+        
         execv(executable_path, exec_args);
 
         // If execv returns, it failed
@@ -299,10 +321,11 @@ bool ProcessManager_SendSignal(ProcessManager *manager, pid_t pid, int signal)
     if (manager == NULL || !manager->initialized)
         return false;
 
+    Logger *logger = (Logger *)manager->context;
     ManagedProcess *proc = ProcessManager_GetByPID(manager, pid);
     if (proc == NULL)
     {
-        fprintf(stderr, "[ProcessManager] Process with PID %d not found\n", pid);
+        Logger_Write(logger, "[ProcessManager] Process with PID %d not found", pid);
         return false;
     }
 
@@ -312,7 +335,7 @@ bool ProcessManager_SendSignal(ProcessManager *manager, pid_t pid, int signal)
         return false;
     }
 
-    printf("[ProcessManager] Sent signal %d to process '%s' (PID %d)\n", signal, proc->name, pid);
+    Logger_Write(logger, "Sent signal %d to process '%s' (PID %d)", signal, proc->name, pid);
     return true;
 }
 

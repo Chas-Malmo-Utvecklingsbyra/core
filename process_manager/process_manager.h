@@ -28,7 +28,7 @@ typedef enum
  * @param exit_code Exit code of the process after it has terminated.
  * @param has_pipes Indicates whether this process has IPC pipes set up.
  */
-typedef struct
+typedef struct ManagedProcess
 {
     pid_t pid;
     char name[PROCESS_MANAGER_MAX_NAME_LENGTH];

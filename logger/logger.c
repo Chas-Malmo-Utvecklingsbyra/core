@@ -60,7 +60,7 @@ Logger_Result Logger_Write(Logger *logger, const char *format, ...)
             snprintf(internal_format_buffer, sizeof(internal_format_buffer), "[%s] [%s] %s\n", time_buffer, logger->id, format);
             vsnprintf(output_buffer, sizeof(output_buffer), internal_format_buffer, args);
             
-            //printf("%s", output_buffer);
+            printf("%s", output_buffer);
             break;
         
         case LOGGER_OUTPUT_TYPE_FILE_JSON: /* WIP, DONT USE */
@@ -106,7 +106,8 @@ void Logger_Dispose(Logger *logger)
     if(!logger)
         return;
         
-    printf("Disposing logger: %s\n", logger->id);
+    Logger_Write(logger, "%s", "Disposing logger");
+    //printf("Disposing logger: %s\n", logger->id);
     if(logger->output_type == LOGGER_OUTPUT_TYPE_FILE_JSON)
     {
         // Close the JSON array properly
