@@ -44,6 +44,7 @@ Logger_Result Logger_Write(Logger *logger, const char *format, ...)
         snprintf(time_buffer, LOGGER_MAX_TIME_BUFFER_SIZE, "Unknown Time");
     }
 
+    char file_name_buffer[64];
     char internal_format_buffer[LOGGER_MAX_LOG_BUFFER_SIZE];
     char output_buffer[LOGGER_MAX_LOG_BUFFER_SIZE];
 
@@ -77,14 +78,16 @@ Logger_Result Logger_Write(Logger *logger, const char *format, ...)
             }
             snprintf(internal_format_buffer, sizeof(internal_format_buffer), "{\"time\":\"%s\", \"id\":\"%s\", \"message\":\"%s\"}\n", time_buffer, logger->id, format);
             vsnprintf(output_buffer, sizeof(output_buffer), internal_format_buffer, args);
-            
-            File_Helper_Write(logger->path, logger->file_name, output_buffer, strlen(output_buffer), FILE_HELPER_MODE_APPEND, false);
+            snprintf(file_name_buffer, sizeof(file_name_buffer), "%s.json", logger->file_name ? logger->file_name : "log");
+
+            File_Helper_Write(logger->path, file_name_buffer, output_buffer, strlen(output_buffer), FILE_HELPER_MODE_APPEND, false);
             break;
 
         case LOGGER_OUTPUT_TYPE_FILE_TEXT:
             snprintf(internal_format_buffer, sizeof(internal_format_buffer), "[%s] [%s] %s\n", time_buffer, logger->id, format);
             vsnprintf(output_buffer, sizeof(output_buffer), internal_format_buffer, args);
-            
+            //snprintf(file_name_buffer, sizeof(file_name_buffer), "%s.txt", logger->file_name ? logger->file_name : "log");
+
             File_Helper_Write(logger->path, logger->file_name, output_buffer, strlen(output_buffer), FILE_HELPER_MODE_APPEND, false);
             break;
 
