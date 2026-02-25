@@ -108,8 +108,8 @@ void Logger_Dispose(Logger *logger)
 {
     if(!logger)
         return;
-        
-    Logger_Write(logger, "%s", "Disposing logger");
+    if (logger->output_type == LOGGER_OUTPUT_TYPE_CONSOLE)
+        Logger_Write(logger, "%s", "Disposing logger");
     //printf("Disposing logger: %s\n", logger->id);
     if(logger->output_type == LOGGER_OUTPUT_TYPE_FILE_JSON)
     {
