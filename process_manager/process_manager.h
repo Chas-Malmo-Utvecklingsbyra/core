@@ -140,10 +140,30 @@ bool ProcessManager_SendSignalByName(ProcessManager *manager, const char *name, 
 bool ProcessManager_TerminateAll(ProcessManager *manager);
 
 // Pipe/IPC operations
-bool ProcessManager_WriteToChild(ManagedProcess *process, const void *data, size_t size);
-ssize_t ProcessManager_ReadFromChild(ManagedProcess *process, void *buffer, size_t size);
+/**
+ * @brief Writes data to the child process's input pipe.
+ * @param manager Pointer to the ProcessManager instance.
+ * @param pid PID of the child process to write to.
+ * @param data Pointer to the data to write.
+ * @param size Size of the data to write in bytes.
+ * @return true on success, false on failure.
+ */
+bool ProcessManager_WriteToChild(ProcessManager *manager, pid_t pid, const void *data, size_t size);
+
+/**
+ * @brief Reads data from the child process's output pipe.
+ * @param manager Pointer to the ProcessManager instance.
+ * @param pid PID of the child process to read from.
+ * @param buffer Buffer to store the read data.
+ * @param size Size of the buffer in bytes.
+ * @return Number of bytes read on success, -1 on failure.
+ */
+ssize_t ProcessManager_ReadFromChild(ProcessManager *manager, pid_t pid, void *buffer, size_t size);
+
 bool ProcessManager_WriteToParent(ManagedProcess *process, const void *data, size_t size);
+
 ssize_t ProcessManager_ReadFromParent(ManagedProcess *process, void *buffer, size_t size);
+
 
 // Process monitoring
 bool ProcessManager_WaitForProcess(ProcessManager *manager, pid_t pid, int *status);

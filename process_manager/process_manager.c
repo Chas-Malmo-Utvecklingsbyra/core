@@ -368,8 +368,13 @@ bool ProcessManager_TerminateAll(ProcessManager *manager)
     return all_success;
 }
 
-bool ProcessManager_WriteToChild(ManagedProcess *process, const void *data, size_t size)
+bool ProcessManager_WriteToChild(ProcessManager *manager, pid_t pid, const void *data, size_t size)
 {
+    if (manager == NULL || !manager->initialized || data == NULL)
+        return false;
+        
+    ManagedProcess *process = ProcessManager_GetByPID(manager, pid);
+    
     if (process == NULL || !process->has_pipes || data == NULL)
         return false;
 
@@ -377,11 +382,15 @@ bool ProcessManager_WriteToChild(ManagedProcess *process, const void *data, size
     return written == (ssize_t)size;
 }
 
-ssize_t ProcessManager_ReadFromChild(ManagedProcess *process, void *buffer, size_t size)
+ssize_t ProcessManager_ReadFromChild(ProcessManager *manager, pid_t pid, void *buffer, size_t size)
 {
-    if (process == NULL || !process->has_pipes || buffer == NULL)
+    if (manager == NULL || !manager->initialized || buffer == NULL)
         return -1;
-
+        
+    ManagedProcess *process = ProcessManager_GetByPID(manager, pid);
+    if (process == NULL || !process->has_pipes)
+        return -1;
+    
     return read(process->pipe_child_to_parent[0], buffer, size);
 }
 
