@@ -39,7 +39,7 @@ typedef HTTP_Status_Code (*RouteHandler)(QueryParameters_t *params, Route_Handle
  */
 typedef struct Route_Registry_Entry
 {
-    const char *path;           /* Route path (e.g., "/v1/weather") */
+    char *path;           /* Route path (e.g., "/v1/weather") */
     Http_Method method;         /* HTTP method (e.g., "GET") */
     RouteHandler handler;       /* Handler function for this route */
     void *context;              /* Optional context pointer for user data */
