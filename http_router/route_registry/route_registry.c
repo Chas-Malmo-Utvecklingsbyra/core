@@ -107,6 +107,12 @@ void Route_Registry_Dispose(Route_Registry *registry)
                 free(registry->entries[i].context);
                 registry->entries[i].context = NULL;
             }
+
+            if (registry->entries[i].path != NULL)
+            {
+                free(registry->entries[i].path);
+                registry->entries[i].path = NULL;
+            }
         }
 
         free(registry->entries);

@@ -194,7 +194,7 @@ pid_t ProcessManager_SpawnByExecutable(ProcessManager *manager, const char *name
         char **exec_args = NULL;
         if (create_pipes)
         {
-            exec_args = calloc(argc + 4, sizeof(char *));
+            exec_args = calloc(argc + 6, sizeof(char *));
         }
         else
         {
