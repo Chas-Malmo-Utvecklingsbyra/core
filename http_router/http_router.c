@@ -56,7 +56,7 @@ static void request_handler_set_error_response(Route_Handler_Response_t *request
     }
 }
 
-void Http_Router_Set_Response(Route_Handler_Response_t *request_handler_response, const HTTP_Status_Code status_code, const Http_Content_Type content_type, const char *response_data)
+void Http_Router_Set_Response(Route_Handler_Response_t *request_handler_response, const HTTP_Status_Code status_code, const Http_Content_Type content_type, const char *response_data, bool is_heap)
 {
     if (request_handler_response == NULL)
         return;
@@ -71,7 +71,12 @@ void Http_Router_Set_Response(Route_Handler_Response_t *request_handler_response
 
     request_handler_response->status_code = status_code;
     request_handler_response->content_type = content_type;
-    request_handler_response->response_data = strdup(response_data);
+
+    if (!is_heap)
+        request_handler_response->response_data = strdup(response_data);
+    else
+        request_handler_response->response_data = response_data;
+
     if (request_handler_response->response_data == NULL)
     {
         fprintf(stderr, "Warning: Failed to allocate memory for response data\n");
