@@ -9,7 +9,7 @@
 #include "../../utils/sleep.h"
 
 #ifndef TCP_CLIENT_RECEIVE_BUFFER_SIZE
-    #define TCP_CLIENT_RECEIVE_BUFFER_SIZE 2048 * 4
+    #define TCP_CLIENT_RECEIVE_BUFFER_SIZE 1024 * 32
 #endif
 
 #ifndef TCP_CLIENT_OUTGOING_BUFFER_SIZE

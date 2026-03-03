@@ -249,16 +249,11 @@ TCP_Server_Result tcp_server_send_to_client(TCP_Server *server, TCP_Server_Clien
 
 	uint32_t outgoing_capacity_remaining = sizeof(client->outgoing_buffer) - client->outgoing_buffer_amount_of_bytes; 
 
-	printf("[[[outgoing_capacity_remaining: %d]]]\n", outgoing_capacity_remaining);
-
 	if (outgoing_capacity_remaining < buffer_size){
-		printf("[[[IF STATEMENT]]]\n");
 		return TCP_Server_Result_Not_Enough_Space;
 	}
 
 	uint32_t amount_of_bytes_to_send = min_uint32(buffer_size, outgoing_capacity_remaining);
-
-	printf("[[[AMOUNT_OF_BYTES_TO_SEND: %d]]]\n", amount_of_bytes_to_send);
 
 	memcpy(&client->outgoing_buffer[client->outgoing_buffer_amount_of_bytes], buffer, amount_of_bytes_to_send);
 	

@@ -112,7 +112,7 @@ char* HTTPClient_IP_GET(const char* hostname)
     return ip_buffer;
 }
 
-int HTTPClient_GET(HTTPClient* _Client, const char* _URL, const char *route)
+int HTTPClient_GET(HTTPClient* _Client, const char* _URL, const char *route, int port)
 {
 	_Client->buffer = malloc(4096);
 	if(_Client->buffer == NULL)
@@ -137,7 +137,7 @@ int HTTPClient_GET(HTTPClient* _Client, const char* _URL, const char *route)
         return -1;
     }
     
-    TCP_Client_Result tcp_client_result = tcp_client_connect(&_Client->tcp_client, IP, 80);
+    TCP_Client_Result tcp_client_result = tcp_client_connect(&_Client->tcp_client, IP, port);
 
     if (tcp_client_result != TCP_Client_Result_OK){
         printf("TCP Client Connect Error: %d\n", tcp_client_result);

@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include "../../tcp/tcp_client/tcp_client.h"
 
+#define CLIENT_INBUFFER_SIZE 1024 * 32
+
 typedef struct HTTPClient HTTPClient;
 typedef void(*HTTPClient_Callback_On_Received_Full_Message)(HTTPClient *client);
 
@@ -27,7 +29,7 @@ struct HTTPClient
 	uint8_t* buffer;
 	uint8_t* bufferPtr;
 	
-    uint8_t inbuffer[4096];
+    uint8_t inbuffer[CLIENT_INBUFFER_SIZE];
 
 	float lat;
 	float lon;
@@ -46,7 +48,7 @@ struct HTTPClient
 
 int HTTPClient_Initiate(HTTPClient* _Client, HTTPClient_Callback_On_Received_Full_Message on_received_full_message);
 
-int HTTPClient_GET(HTTPClient* _Client, const char* _URL, const char *route);
+int HTTPClient_GET(HTTPClient* _Client, const char* _URL, const char *route, int port);
 
 bool HTTPClient_Work(void* _Context);
 

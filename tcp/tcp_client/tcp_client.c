@@ -268,11 +268,10 @@ TCP_Client_Result tcp_client_read(TCP_Client *client){
     }
 
     int totalBytesRead = 0;
-    uint8_t temp_buf[2048];
+    uint8_t temp_buf[TCP_CLIENT_RECEIVE_BUFFER_SIZE];
     bool connection_closed = false;
 
     Socket_Result result = socket_read(&client->server.socket, temp_buf, sizeof(temp_buf), &totalBytesRead);
-    printf("%s, Hello Emilio, I am reading from the sockets inside of the client\n", temp_buf);
         
     if(result == Socket_Result_Nothing_Read){
         if(client->server.incoming_buffer_bytes == 0){
