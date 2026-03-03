@@ -6,7 +6,7 @@
 #include "../shared/tcp_shared.h" /* TODO: SS - We should not have to go back here. Figure out why. Probably a problem with the Makefile. */
 
 #ifndef TCP_MAX_CLIENT_BUFFER_SIZE
-    #define TCP_MAX_CLIENT_BUFFER_SIZE 1024
+    #define TCP_MAX_CLIENT_BUFFER_SIZE 1024 * 32
 #endif
 
 typedef struct 

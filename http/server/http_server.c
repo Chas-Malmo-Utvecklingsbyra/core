@@ -52,6 +52,8 @@ bool HTTP_Server_Initialize(HTTP_Server* http_server, size_t max_connections, vo
     (void)max_connections;
     memset(http_server, 0, sizeof(HTTP_Server));
 
+    printf("HTTP_SERVER_INITIALIZE BEGIN\r\n");
+
     if (Route_Registry_Create(&http_server->route_registry, context) == false)
     {
         printf("Failed to create route registry.\n");
@@ -62,6 +64,9 @@ bool HTTP_Server_Initialize(HTTP_Server* http_server, size_t max_connections, vo
             &http_server->tcp_server,
             (void*)http_server,
             &on_received_bytes_from_client);
+
+    printf("HTTP_SERVER_INITIALIZE BEGIN %d\r\n", server_init_result);
+        
 
     if(server_init_result != TCP_Server_Result_OK) 
     {
@@ -94,6 +99,7 @@ bool HTTP_Server_Start(HTTP_Server* http_server, uint16_t port)
     http_server->port = port;
 
     TCP_Server_Result start_server_result = tcp_server_start(&http_server->tcp_server, http_server->port);
+    printf("TCP_Server_Start result %d\r\n", start_server_result);
     if(start_server_result != TCP_Server_Result_OK) 
     {
         printf("Failed to start TCP server. Result: %i.\n", start_server_result); // TODO: SS - tcp_server_get_result_as_string(start_server_result)

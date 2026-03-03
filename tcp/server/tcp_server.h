@@ -20,7 +20,7 @@ struct TCP_Server {
     uint16_t port;
     struct addrinfo* hints;
 
-    TCP_Server_Client clients[TCP_MAX_CLIENTS_PER_SERVER];
+    TCP_Server_Client *clients;
     uint32_t client_count;
 
     uint32_t next_unique_id;

@@ -118,7 +118,7 @@ Socket_Result socket_read(Socket *socket, uint8_t *buffer, const uint32_t buffer
         }         
         return socket_result_error;
     }
-#endif         
+#endif
 
     if(bytesRead == 0){
         return socket_result_connection_closed;

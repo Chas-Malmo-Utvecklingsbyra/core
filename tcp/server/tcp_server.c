@@ -49,6 +49,7 @@ TCP_Server_Result tcp_server_init(TCP_Server *server, void *context,TCP_Server_C
 
 	server->on_received_bytes_from_client = on_received_bytes_from_client;
 
+	server->clients = (TCP_Server_Client*)malloc(sizeof(TCP_Server_Client) * TCP_MAX_CLIENTS_PER_SERVER);
 	/* moved from _start*/
 	int i;
 	for (i = 0; i < TCP_MAX_CLIENTS_PER_SERVER; i++)
@@ -134,27 +135,27 @@ TCP_Server_Result tcp_server_work(TCP_Server *server){
 	TCP_Server_Result server_read_result = tcp_server_read(server);
 	if (server_read_result != TCP_Server_Result_OK)
 	{
-		/* printf("Failed to read TCP server. Result: %i.\n", server_read_result); // TODO: SS - tcp_server_get_result_as_string(start_server_result) */
+		printf("Failed to read TCP server. Result: %i.\n", server_read_result); // TODO: SS - tcp_server_get_result_as_string(start_server_result)
 		return server_read_result;
 	}
 	TCP_Server_Result server_send_result = tcp_server_send(server);
 	if (server_send_result != TCP_Server_Result_OK)
 	{
-		/* printf("Failed to read TCP server. Result: %i.\n", server_read_result); // TODO: SS - tcp_server_get_result_as_string(start_server_result) */
+		printf("Failed to read TCP server. Result: %i.\n", server_read_result); // TODO: SS - tcp_server_get_result_as_string(start_server_result)
 		return server_send_result;
 	}
 
 	TCP_Server_Result server_timeout_result = tcp_server_timeout_checker(server);
 	if (server_timeout_result != TCP_Server_Result_OK)
 	{
-		/* printf("Failed to read TCP server. Result: %i.\n", server_read_result); // TODO: SS - tcp_server_get_result_as_string(start_server_result) */
+		printf("Failed to read TCP server. Result: %i.\n", server_read_result); // TODO: SS - tcp_server_get_result_as_string(start_server_result)
 		return server_timeout_result;
 	}
 
 	TCP_Server_Result server_clean_result = tcp_server_close_connection(server);
 	if (server_clean_result != TCP_Server_Result_OK)
 	{
-		/* printf("Failed to read TCP server. Result: %i.\n", server_read_result); // TODO: SS - tcp_server_get_result_as_string(start_server_result) */
+		printf("Failed to read TCP server. Result: %i.\n", server_read_result); // TODO: SS - tcp_server_get_result_as_string(start_server_result)
 		return server_clean_result;
 	}
 
@@ -248,12 +249,16 @@ TCP_Server_Result tcp_server_send_to_client(TCP_Server *server, TCP_Server_Clien
 
 	uint32_t outgoing_capacity_remaining = sizeof(client->outgoing_buffer) - client->outgoing_buffer_amount_of_bytes; 
 
+	printf("[[[outgoing_capacity_remaining: %d]]]\n", outgoing_capacity_remaining);
 
 	if (outgoing_capacity_remaining < buffer_size){
+		printf("[[[IF STATEMENT]]]\n");
 		return TCP_Server_Result_Not_Enough_Space;
 	}
 
 	uint32_t amount_of_bytes_to_send = min_uint32(buffer_size, outgoing_capacity_remaining);
+
+	printf("[[[AMOUNT_OF_BYTES_TO_SEND: %d]]]\n", amount_of_bytes_to_send);
 
 	memcpy(&client->outgoing_buffer[client->outgoing_buffer_amount_of_bytes], buffer, amount_of_bytes_to_send);
 	
@@ -278,6 +283,7 @@ TCP_Server_Result tcp_server_dispose(TCP_Server *server){
 
 	close(server->socket.file_descriptor);
 	free(server->hints);
+	free(server->clients);
 
     return TCP_Server_Result_OK;
 }
