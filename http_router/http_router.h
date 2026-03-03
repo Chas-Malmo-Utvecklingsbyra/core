@@ -20,7 +20,7 @@
  * @return void
  * @note response_data should be NULL for error responses.
  */
-void Http_Router_Set_Response(Route_Handler_Response_t *request_handler_response, const HTTP_Status_Code status_code, const Http_Content_Type content_type, const char *response_data, bool is_heap);
+void Http_Router_Set_Response(Route_Handler_Response_t *request_handler_response, const HTTP_Status_Code status_code, const Http_Content_Type content_type, char *response_data, bool is_heap);
 
 /**
  * @brief Handles a HTTP request and returns the response structure.

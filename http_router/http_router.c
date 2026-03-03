@@ -56,7 +56,7 @@ static void request_handler_set_error_response(Route_Handler_Response_t *request
     }
 }
 
-void Http_Router_Set_Response(Route_Handler_Response_t *request_handler_response, const HTTP_Status_Code status_code, const Http_Content_Type content_type, const char *response_data, bool is_heap)
+void Http_Router_Set_Response(Route_Handler_Response_t *request_handler_response, const HTTP_Status_Code status_code, const Http_Content_Type content_type, char *response_data, bool is_heap)
 {
     if (request_handler_response == NULL)
         return;
@@ -89,12 +89,12 @@ Route_Handler_Response_t Http_Router_Handle_Request(Route_Registry *registry, Ht
     
     if (request == NULL)
     {
-        Http_Router_Set_Response(&response, HTTP_STATUS_CODE_BAD_REQUEST, HTTP_CONTENT_TYPE_JSON, NULL);
+        Http_Router_Set_Response(&response, HTTP_STATUS_CODE_BAD_REQUEST, HTTP_CONTENT_TYPE_JSON, NULL, false);
         return response;
     }
     if (registry == NULL)
     {
-        Http_Router_Set_Response(&response, HTTP_STATUS_CODE_INTERNAL_SERVER_ERROR, HTTP_CONTENT_TYPE_JSON, NULL);
+        Http_Router_Set_Response(&response, HTTP_STATUS_CODE_INTERNAL_SERVER_ERROR, HTTP_CONTENT_TYPE_JSON, NULL, false);
         return response;
     }
 
@@ -103,14 +103,14 @@ Route_Handler_Response_t Http_Router_Handle_Request(Route_Registry *registry, Ht
     Http_Method method = request->start_line.method;
     if (method == HTTP_METHOD_OPTIONS) /* Handle ALL OPTIONS requests */
     {
-        Http_Router_Set_Response(&response, HTTP_STATUS_CODE_OK, HTTP_CONTENT_TYPE_HTML, "<h1>OPTIONS</h1>");
+        Http_Router_Set_Response(&response, HTTP_STATUS_CODE_OK, HTTP_CONTENT_TYPE_HTML, "<h1>OPTIONS</h1>", false);
         return response;
     }
     
     HTTP_Status_Code result_code = Route_Registry_Dispatch(registry, request->start_line.path, method, &response);
     if (result_code != HTTP_STATUS_CODE_OK) /* Ensure error response is set */
     {
-        Http_Router_Set_Response(&response, result_code, response.content_type, NULL);
+        Http_Router_Set_Response(&response, result_code, response.content_type, NULL, false);
     }
     return response;
 }
