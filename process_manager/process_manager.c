@@ -12,6 +12,28 @@
 
 static pid_t g_initialize_pid = 0;
 
+bool ProcessManager_RemoveProcess(ProcessManager *manager, pid_t pid)
+{
+     if(manager == NULL || !manager->initialized)
+        return false;
+        
+    for (size_t i = 0; i < manager->process_count; i++)
+    {
+        if (manager->processes[i].pid == pid)
+        {
+            LOG_WRITE((Logger *)manager->context, "Removing process with PID %d from manager", pid);
+            for (size_t j = i; j < manager->process_count - 1; j++)
+            {
+                manager->processes[j] = manager->processes[j + 1];
+            }
+            memset(&manager->processes[manager->process_count - 1], 0, sizeof(ManagedProcess));
+            manager->process_count--;
+            return true;
+        }
+    }
+    return false;
+}
+
 bool ProcessManager_Init(ProcessManager *manager, void *context)
 {
     if (manager == NULL) return false;
@@ -271,6 +293,40 @@ pid_t ProcessManager_SpawnByExecutable(ProcessManager *manager, const char *name
         }
         return -1;
     }
+}
+
+pid_t ProcessManager_ResstartProcess(ProcessManager *manager, pid_t pid, const char *name, const char *executable_path, char *const args[], bool create_pipes)
+{
+    if (manager == NULL || !manager->initialized || pid <= 0 || name == NULL || executable_path == NULL || args == NULL)
+        return -1;
+
+    Logger *logger = (Logger *)manager->context;
+
+    LOG_WRITE(logger, "Restarting process with PID %d using executable: %s", pid, executable_path);
+
+    ManagedProcess *proc = ProcessManager_GetByPID(manager, pid);
+    if (proc == NULL)
+    {
+        LOG_WRITE(logger, "Process with PID %d not found for restart", pid);
+        return false;
+    }
+
+    ProcessManager_SendSignal(manager, pid, SIGTERM);
+
+    int status;
+    if (!ProcessManager_WaitForProcess(manager, pid, &status))
+        LOG_WRITE(logger, "Failed to wait for process with PID %d to exit", pid);
+
+    if (ProcessManager_RemoveProcess(manager, pid) == false)
+        LOG_WRITE(logger, "Failed to remove process with PID %d from manager", pid);
+    
+    pid_t new_pid = ProcessManager_SpawnByExecutable(manager, name, executable_path, args, create_pipes);
+    if (new_pid < 0)    {
+        LOG_WRITE(logger, "Failed to spawn new process for restart with executable: %s", executable_path);
+        return -1;
+    }
+
+    return new_pid;
 }
 
 ManagedProcess *ProcessManager_GetByPID(ProcessManager *manager, pid_t pid)
