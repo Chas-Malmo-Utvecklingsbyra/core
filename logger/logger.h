@@ -52,3 +52,17 @@ Logger_Result Logger_Write(Logger *logger, const char *format, ...);
  * @return void.
  */
 void Logger_Dispose(Logger *logger);
+
+/**
+ * @brief Macro to write a log message with automatic null check.
+ * @param logger Pointer to the Logger instance (can be NULL).
+ * @param ... Format string and arguments for the log message.
+ * 
+ * Usage: LOG_WRITE(logger, "User %s logged in at %d", username, timestamp);
+ */
+#define LOG_WRITE(logger, ...) \
+    do { \
+        if ((logger) != NULL) { \
+            Logger_Write((logger), __VA_ARGS__); \
+        } \
+    } while(0)
