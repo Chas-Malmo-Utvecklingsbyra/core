@@ -126,7 +126,7 @@ Http_Error http_get(const char *url, char **response, const char *headers[])
 }
 
 
-Http_Error http_post(Http* h, const char* url, char* postData, struct curl_slist* headers)
+Http_Error http_post(Http* h, const char* url, char* postData, struct curl_slist* headers, char **response)
 {
     if (h->curl == NULL)
     {
@@ -141,7 +141,11 @@ Http_Error http_post(Http* h, const char* url, char* postData, struct curl_slist
         curl_easy_setopt(h->curl, CURLOPT_HTTPHEADER, headers);
     }
 
+    Http_Response http_response = {0};
+
     curl_easy_setopt(h->curl, CURLOPT_POSTFIELDS, postData);
+    curl_easy_setopt(h->curl, CURLOPT_WRITEFUNCTION, http_response_write_callback);
+    curl_easy_setopt(h->curl, CURLOPT_WRITEDATA, (void *)&http_response);
 
     CURLcode code = curl_easy_perform(h->curl);
     if (code != CURLE_OK)
@@ -149,6 +153,8 @@ Http_Error http_post(Http* h, const char* url, char* postData, struct curl_slist
         printf("Curl failed to post\n");
         return HTTP_ERROR_FAILED_TO_PERFORM;
     }
+
+    *response = http_response.data;
 
     if (headers)
     {

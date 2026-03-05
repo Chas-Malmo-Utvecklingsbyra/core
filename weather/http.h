@@ -28,7 +28,7 @@ Http_Error http_initialize(Http* h);
 Http_Error http_get(const char *url, char **response, const char *headers[]);
 
 /* returns: Http_Error enum. Headers may be set to NULL if not included in post request. */
-Http_Error http_post(Http* h, const char* url, char* postData, struct curl_slist* headers);
+Http_Error http_post(Http* h, const char* url, char* postData, struct curl_slist* headers, char **response);
 
 /* Disposes the response heap memory */
 void http_dispose_response(Http_Response* response);
