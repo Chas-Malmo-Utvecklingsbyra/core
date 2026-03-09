@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <errno.h>
+#include <fcntl.h>
 #include "logger/logger.h"
 #include "string/strdup.h"
 
@@ -447,6 +448,7 @@ ssize_t ProcessManager_ReadFromChild(ProcessManager *manager, pid_t pid, void *b
     if (process == NULL || !process->has_pipes)
         return -1;
     
+    fcntl(process->pipe_child_to_parent[0], F_SETFL, O_NONBLOCK);
     return read(process->pipe_child_to_parent[0], buffer, size);
 }
 
