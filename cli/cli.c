@@ -115,9 +115,9 @@ bool CLI_Parse(CLI *cli, int argc, char **argv)
                     {
                         char *str_ptr = (char*)cli->infos[i].data;
 
-                        // TODO: 
-                        // - Check how big str_ptr is so it doesnt buffer overflow
-                        strcpy(str_ptr, ptr);
+                        strncpy(str_ptr, ptr, CLI_MAX_ARGUMENT_LENGTH);
+
+                        str_ptr[CLI_MAX_ARGUMENT_LENGTH - 1] = '\0';
                     }
                 }
                 else

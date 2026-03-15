@@ -5,6 +5,10 @@
     #define CLI_MAX_OPTIONS 10
 #endif
 
+#ifndef CLI_MAX_ARGUMENT_LENGTH
+    #define CLI_MAX_ARGUMENT_LENGTH 128
+#endif
+
 #include <stdbool.h>
 
 typedef void(*Argument_Callback)(void);
