@@ -49,11 +49,9 @@ TCP_Server_Result tcp_server_init(TCP_Server *server, void *context,TCP_Server_C
 
 	server->on_received_bytes_from_client = on_received_bytes_from_client;
 
-	server->clients = (TCP_Server_Client*)malloc(sizeof(TCP_Server_Client) * TCP_MAX_CLIENTS_PER_SERVER);
+	Unordered_List_Initialize(&server->clients);
+
 	/* moved from _start*/
-	int i;
-	for (i = 0; i < TCP_MAX_CLIENTS_PER_SERVER; i++)
-		tcp_server_client_init(&server->clients[i]);
 	
 	/* reset tracking counters */
 	server->client_count = 0;
@@ -164,9 +162,10 @@ TCP_Server_Result tcp_server_work(TCP_Server *server){
 
 TCP_Server_Result tcp_server_send(TCP_Server *server){
 	size_t i;
-	for (i = 0; i < server->client_count; i++)
+
+	for (i = 0; i < server->clients.elements; i++)
 	{
-		tcp_server_client_send(&server->clients[i]);
+		tcp_server_client_send(server->clients.data[i]);
 	}
 
 	return TCP_Server_Result_OK;
@@ -196,18 +195,23 @@ TCP_Server_Result tcp_server_accept(TCP_Server *server){
 	fcntl(cfd, F_SETFL, flags | O_NONBLOCK);
 	/* End */
 
-	/* Find free socket */
-	uint32_t i;
-	for (i = 0; i < TCP_MAX_CLIENTS_PER_SERVER; i++) {
-		
-		TCP_Server_Client *client = &server->clients[i];
+	TCP_Server_Client *client = (TCP_Server_Client*)malloc(sizeof(TCP_Server_Client));
+	if (client == NULL)
+	{
+		return TCP_Server_Result_Error;
+	}
+	tcp_server_client_init(client);
 
-		if (tcp_server_client_get_accepted(client, cfd))
-		{
-			server->client_count++;
-			printf("Ny klient accepterad (FD: %d, index: %i/%i)\n", client->socket.file_descriptor, i+1, TCP_MAX_CLIENTS_PER_SERVER);
-			return TCP_Server_Result_OK;
-		}
+	if (tcp_server_client_get_accepted(client, cfd))
+	{
+		Unordered_List_Add(&server->clients, client);
+		server->client_count++;
+		printf("Ny klient accepterad (FD: %d, index: %ld/%ld)\n", client->socket.file_descriptor, server->clients.elements, server->clients.capacity);
+
+		printf("________________\r\n");
+		Unordered_List_Print(&server->clients);
+
+		return TCP_Server_Result_OK;
 	}
 
 	/* FULL */
@@ -221,9 +225,10 @@ TCP_Server_Result tcp_server_accept(TCP_Server *server){
 TCP_Server_Result tcp_server_read(TCP_Server *server)
 {
 	size_t i;
-	for (i = 0; i < server->client_count; i++)
+	for (i = 0; i < server->clients.elements; i++)
 	{
-		TCP_Server_Client *client = &server->clients[i];
+		TCP_Server_Client *client = (TCP_Server_Client*)server->clients.data[i];
+
 		
 		int totalBytesRead = 0;
 		/* TODO: Fix buffer read from position of already existing read data */
@@ -244,7 +249,6 @@ TCP_Server_Result tcp_server_read(TCP_Server *server)
 }
 
 TCP_Server_Result tcp_server_send_to_client(TCP_Server *server, TCP_Server_Client *client, const uint8_t *buffer, const uint32_t buffer_size){
-	
 	(void)server;
 
 	uint32_t outgoing_capacity_remaining = sizeof(client->outgoing_buffer) - client->outgoing_buffer_amount_of_bytes; 
@@ -271,14 +275,19 @@ TCP_Server_Result tcp_server_stop(TCP_Server *server) {
 
 TCP_Server_Result tcp_server_dispose(TCP_Server *server){
 	uint32_t i;
-	for (i = 0; i < server->client_count; i++)
+	for (i = 0; i < server->clients.elements; i++)
 	{
-		tcp_server_client_dispose(&server->clients[i]);
+		TCP_Server_Client *client = (TCP_Server_Client*)server->clients.data[i];
+		tcp_server_client_dispose(client);
+		
+		free(client);
+		client = NULL;
 	}
 
 	close(server->socket.file_descriptor);
 	free(server->hints);
-	free(server->clients);
+	Unordered_List_Dispose(&server->clients);
+	
 
     return TCP_Server_Result_OK;
 }
@@ -286,8 +295,8 @@ TCP_Server_Result tcp_server_dispose(TCP_Server *server){
 TCP_Server_Result tcp_server_timeout_checker(TCP_Server *server){
 	
 	uint32_t i;
-	for(i = 0; i < server->client_count; i++){
-		if (tcp_server_client_should_timeout(&server->clients[i]))
+	for(i = 0; i < server->clients.elements; i++){
+		if (tcp_server_client_should_timeout(server->clients.data[i]))
 		{
 			printf("updated CLOSE status on client: %i\n", i);
 		}
@@ -295,19 +304,23 @@ TCP_Server_Result tcp_server_timeout_checker(TCP_Server *server){
 	return TCP_Server_Result_OK;
 }
 
-
+// Maybe thread this?
 TCP_Server_Result tcp_server_close_connection(TCP_Server *server){
-	
-	uint32_t start_count = server->client_count;
-	uint32_t i;
-	for(i = 0; i < start_count; i++){
+	for(size_t i = 0; i < server->clients.elements; i++){
 
-		if (tcp_server_client_should_close(&server->clients[i]))
+		if (tcp_server_client_should_close(server->clients.data[i]))
 		{
-			server->clients[i] = server->clients[server->client_count-1];
-			memset(&server->clients[server->client_count-1], 0, sizeof(TCP_Server_Client));
-			server->client_count--;
-			printf("closed client connection %i\n", i);
+			TCP_Server_Client *client = server->clients.data[i];
+			Unordered_List_Remove(&server->clients, i);
+			free(server->clients.data[i]);
+
+
+			printf("After closing connection:\r\n");
+			Unordered_List_Print(&server->clients);
+			
+
+			printf("closed client connection %ld\n", i);
+			i--;
 		}
 	}
 	return TCP_Server_Result_OK;

@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include "../shared/tcp_shared.h" /* TODO: SS - We should not have to go back here. Figure out why. Probably a problem with the Makefile. */
 #include "tcp_server_client.h"
+#include "../../Datatypes/Unordered_List.h"
 
 #ifndef TCP_MAX_CLIENTS_PER_SERVER
 /* NOTE: SS - Slightly annoying because this means that all servers have to have max N clients if we'd have multiple servers per program for example. */
@@ -20,7 +21,9 @@ struct TCP_Server {
     uint16_t port;
     struct addrinfo* hints;
 
-    TCP_Server_Client *clients;
+    Unordered_List clients; 
+
+
     uint32_t client_count;
 
     uint32_t next_unique_id;
