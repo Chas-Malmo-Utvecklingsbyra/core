@@ -206,9 +206,10 @@ TCP_Server_Result tcp_server_accept(TCP_Server *server){
 		Unordered_List_Add(&server->clients, client);
 		server->client_count++;
 		printf("Ny klient accepterad (FD: %d, index: %ld/%ld)\n", client->socket.file_descriptor, server->clients.elements, server->clients.capacity);
-
+		
+		/* Test print
 		printf("________________\r\n");
-		Unordered_List_Print(&server->clients);
+		Unordered_List_Print(&server->clients); */
 
 		return TCP_Server_Result_OK;
 	}
@@ -312,8 +313,8 @@ TCP_Server_Result tcp_server_close_connection(TCP_Server *server){
 			Unordered_List_Remove(&server->clients, i);
 			free(client);
 
-			Unordered_List_Print(&server->clients);
-			
+			/* Test print
+			Unordered_List_Print(&server->clients); */
 
 			printf("closed client connection %ld\n", i);
 			i--;
