@@ -39,16 +39,9 @@ void Unordered_List_Add(Unordered_List *list, void *item)
             list->elements++;
         }
         else
-        {
-            for (size_t i = 0; i < list->capacity; i++)
-            {
-                if (list->data[i] == NULL)
-                {
-                    list->data[i] = item;
-                    list->elements++;
-                    break;
-                }
-            }
+        { 
+            list->data[list->elements] = item;
+            list->elements++;
         }
     }
 
