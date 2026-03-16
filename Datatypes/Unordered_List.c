@@ -1,6 +1,7 @@
 #include "Unordered_List.h"
 
 #include <stdlib.h>
+#include <string.h>
 
 void Unordered_List_Initialize(Unordered_List *list)
 {
@@ -23,6 +24,7 @@ void Unordered_List_Add(Unordered_List *list, void *item)
     if (list->data == NULL)
     {
         list->data = (void*)malloc(sizeof(void*) * list->capacity);
+        memset(list->data, 0, sizeof(void*) * list->capacity);
         list->data[0] = item;
         list->elements++;
     }
@@ -32,6 +34,7 @@ void Unordered_List_Add(Unordered_List *list, void *item)
         {
             list->capacity *= 2;
             list->data = realloc(list->data, sizeof(void*) * list->capacity);
+            memset(&list->data[list->elements], 0, sizeof(void*) * (list->capacity - list->elements));
             list->data[list->elements] = item;
             list->elements++;
         }
@@ -76,11 +79,15 @@ void Unordered_List_Print(Unordered_List *list)
         return;
     }
 
-
-
     if (list->data == NULL)
     {
         printf("List->Data is NULL\r\n");
+        return;
+    }
+
+    if (list->elements == 0)
+    {
+        printf("List is empty\r\n");
         return;
     }
 
