@@ -122,8 +122,8 @@ TCP_Server_Result tcp_server_start(TCP_Server *server, uint16_t port)
     return TCP_Server_Result_OK;
 }
 
-TCP_Server_Result tcp_server_work(TCP_Server *server){
-
+TCP_Server_Result tcp_server_work(TCP_Server *server)
+{
 	TCP_Server_Result server_accept_result = tcp_server_accept(server);
 	if (server_accept_result != TCP_Server_Result_OK && server_accept_result != TCP_Server_Result_Server_Full)
 	{
@@ -136,6 +136,7 @@ TCP_Server_Result tcp_server_work(TCP_Server *server){
 		printf("Failed to read TCP server. Result: %i.\n", server_read_result); // TODO: SS - tcp_server_get_result_as_string(start_server_result)
 		return server_read_result;
 	}
+
 	TCP_Server_Result server_send_result = tcp_server_send(server);
 	if (server_send_result != TCP_Server_Result_OK)
 	{
@@ -161,15 +162,12 @@ TCP_Server_Result tcp_server_work(TCP_Server *server){
 }
 
 TCP_Server_Result tcp_server_send(TCP_Server *server){
-	size_t i;
-
-	for (i = 0; i < server->clients.elements; i++)
+	for (size_t i = 0; i < server->clients.elements; i++)
 	{
 		tcp_server_client_send(server->clients.data[i]);
 	}
 
 	return TCP_Server_Result_OK;
-
 }
 
 TCP_Server_Result tcp_server_accept(TCP_Server *server){
@@ -200,6 +198,7 @@ TCP_Server_Result tcp_server_accept(TCP_Server *server){
 	{
 		return TCP_Server_Result_Error;
 	}
+	memset(client, 0, sizeof(TCP_Server_Client));
 	tcp_server_client_init(client);
 
 	if (tcp_server_client_get_accepted(client, cfd))
@@ -250,7 +249,6 @@ TCP_Server_Result tcp_server_read(TCP_Server *server)
 
 TCP_Server_Result tcp_server_send_to_client(TCP_Server *server, TCP_Server_Client *client, const uint8_t *buffer, const uint32_t buffer_size){
 	(void)server;
-
 	uint32_t outgoing_capacity_remaining = sizeof(client->outgoing_buffer) - client->outgoing_buffer_amount_of_bytes; 
 
 	if (outgoing_capacity_remaining < buffer_size){
@@ -260,7 +258,7 @@ TCP_Server_Result tcp_server_send_to_client(TCP_Server *server, TCP_Server_Clien
 	uint32_t amount_of_bytes_to_send = min_uint32(buffer_size, outgoing_capacity_remaining);
 
 	memcpy(&client->outgoing_buffer[client->outgoing_buffer_amount_of_bytes], buffer, amount_of_bytes_to_send);
-	
+
 	client->outgoing_buffer_amount_of_bytes += amount_of_bytes_to_send;
 
 	return TCP_Server_Result_OK;
@@ -306,16 +304,14 @@ TCP_Server_Result tcp_server_timeout_checker(TCP_Server *server){
 
 // Maybe thread this?
 TCP_Server_Result tcp_server_close_connection(TCP_Server *server){
-	for(size_t i = 0; i < server->clients.elements; i++){
-
+	for(size_t i = 0; i < server->clients.elements; i++)
+	{
 		if (tcp_server_client_should_close(server->clients.data[i]))
 		{
 			TCP_Server_Client *client = server->clients.data[i];
 			Unordered_List_Remove(&server->clients, i);
-			free(server->clients.data[i]);
+			free(client);
 
-
-			printf("After closing connection:\r\n");
 			Unordered_List_Print(&server->clients);
 			
 

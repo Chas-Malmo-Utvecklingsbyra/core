@@ -41,11 +41,10 @@ bool tcp_server_client_get_accepted(TCP_Server_Client* client, int cfd)
 bool tcp_server_client_send(TCP_Server_Client* client)
 {
     if (client->outgoing_buffer_amount_of_bytes == 0)
-    {
         return false;
-    }
 
     uint32_t totalBytesSent = 0;
+
 
     Socket_Result write_result = socket_write(&client->socket, client->outgoing_buffer, client->outgoing_buffer_amount_of_bytes, &totalBytesSent);
 
@@ -59,11 +58,14 @@ bool tcp_server_client_send(TCP_Server_Client* client)
 
     // printf("total bytes send: %u\n", totalBytesSent);
     /* TODO: 1 2 3 4 5 6 7 8 */
+
     uint32_t y;
     for (y = 0; y < client->outgoing_buffer_amount_of_bytes - totalBytesSent; y++)
     {
         client->outgoing_buffer[y] = client->outgoing_buffer[totalBytesSent + y];
     }
+
+
     client->outgoing_buffer[totalBytesSent + 1] = '\0';
 
     client->outgoing_buffer_amount_of_bytes -= totalBytesSent;
