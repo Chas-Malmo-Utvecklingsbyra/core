@@ -24,6 +24,12 @@ void Unordered_List_Add(Unordered_List *list, void *item)
     if (list->data == NULL)
     {
         list->data = (void*)malloc(sizeof(void*) * list->capacity);
+        if (list->data == NULL)
+        {
+            printf("Unordered_List_Add failed to malloc starting DATA\r\n");
+            return;
+        }
+
         memset(list->data, 0, sizeof(void*) * list->capacity);
         list->data[0] = item;
         list->elements++;
@@ -33,7 +39,14 @@ void Unordered_List_Add(Unordered_List *list, void *item)
         if (list->elements == list->capacity)
         {
             list->capacity *= 2;
+            
             list->data = realloc(list->data, sizeof(void*) * list->capacity);
+            if (list->data == NULL)
+            {
+                printf("Unordered_List_Add failed to realloc increased capacity\r\n");
+                return;              
+            }
+
             memset(&list->data[list->elements], 0, sizeof(void*) * (list->capacity - list->elements));
             list->data[list->elements] = item;
             list->elements++;
