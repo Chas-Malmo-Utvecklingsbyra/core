@@ -30,5 +30,5 @@ void Benchmark_Print(Benchmark *benchmark)
     if (!benchmark)
         return;
 
-    printf("[Benchmark] Total Time: %lf\r\n", benchmark->total);
+    printf("[Benchmark] Total Time: %.9f seconds\r\n", benchmark->total);
 }
