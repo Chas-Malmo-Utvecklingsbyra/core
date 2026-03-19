@@ -15,7 +15,7 @@ int main(void)
         return 1;
 
     /* Method should be GET */
-    if (parsed->start_line.method != GET)
+    if (parsed->start_line.method != HTTP_METHOD_GET)
         return 1;
 
     /* Method string should be correct */
