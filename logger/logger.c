@@ -10,6 +10,33 @@
 #define LOGGER_MAX_TIME_BUFFER_SIZE 20
 #define LOGGER_MAX_LOG_BUFFER_SIZE 4096
 
+#define LOGGER_COLOR_RESET      "\x1b[0m"
+#define LOGGER_COLOR_WHITE      "\x1b[37m"
+#define LOGGER_COLOR_ORANGE     "\x1b[33m"
+#define LOGGER_COLOR_RED        "\x1b[31m"
+
+static const char* Logger_Get_Color(Logger_Level level)
+{
+    switch(level)
+    {
+        case LOGGER_LEVEL_INFO:     return LOGGER_COLOR_WHITE;
+        case LOGGER_LEVEL_WARNING:  return LOGGER_COLOR_ORANGE;
+        case LOGGER_LEVEL_ERROR:    return LOGGER_COLOR_RED;
+        default:                    return LOGGER_COLOR_RESET;
+    }
+}
+
+static const char* Logger_Get_Level_String(Logger_Level level)
+{
+    switch(level)
+    {
+        case LOGGER_LEVEL_INFO:     return "INFO";
+        case LOGGER_LEVEL_WARNING:  return "WARNING";
+        case LOGGER_LEVEL_ERROR:    return "ERROR";
+        default:                    return "UNKNOWN";
+    }
+}
+
 Logger_Result Logger_Init(Logger *logger, const char *id, const char *path, const char *file_name, Logger_Output_Type output_type)
 {
     if(logger == NULL || id == NULL)
@@ -25,7 +52,7 @@ Logger_Result Logger_Init(Logger *logger, const char *id, const char *path, cons
     return LOGGER_RESULT_OK;
 }
 
-Logger_Result Logger_Write(Logger *logger, const char *format, ...)
+Logger_Result Logger_Write(Logger *logger, Logger_Level level, const char *format, ...)
 {
     if(logger == NULL || format == NULL)
     {
@@ -44,6 +71,9 @@ Logger_Result Logger_Write(Logger *logger, const char *format, ...)
         snprintf(time_buffer, LOGGER_MAX_TIME_BUFFER_SIZE, "Unknown Time");
     }
 
+    const char *level_str = Logger_Get_Level_String(level);
+    const char *color = Logger_Get_Color(level);
+
     char file_name_buffer[64];
     char internal_format_buffer[LOGGER_MAX_LOG_BUFFER_SIZE];
     char output_buffer[LOGGER_MAX_LOG_BUFFER_SIZE];
@@ -58,7 +88,7 @@ Logger_Result Logger_Write(Logger *logger, const char *format, ...)
     switch (logger->output_type)
     {
         case LOGGER_OUTPUT_TYPE_CONSOLE:
-            snprintf(internal_format_buffer, sizeof(internal_format_buffer), "[%s] [%s] %s\n", time_buffer, logger->id, format);
+            snprintf(internal_format_buffer, sizeof(internal_format_buffer), "[%s] [%s] [%s%s%s] %s\n", time_buffer, logger->id, color, level_str, LOGGER_COLOR_RESET, format);
             vsnprintf(output_buffer, sizeof(output_buffer), internal_format_buffer, args);
             
             printf("%s", output_buffer);
@@ -76,15 +106,15 @@ Logger_Result Logger_Write(Logger *logger, const char *format, ...)
                 /* If file is not empty, append a comma to separate entries */
                 File_Helper_Write(logger->path, "log.json", ",\n", 2, FILE_HELPER_MODE_APPEND, false);
             }
-            snprintf(internal_format_buffer, sizeof(internal_format_buffer), "{\"time\":\"%s\", \"id\":\"%s\", \"message\":\"%s\"}\n", time_buffer, logger->id, format);
+            snprintf(internal_format_buffer, sizeof(internal_format_buffer), "{\"time\":\"%s\", \"id\":\"%s\", \"level\":\"%s\", \"message\":\"%s\"}\n", time_buffer, logger->id, Logger_Get_Level_String(level), format);
             vsnprintf(output_buffer, sizeof(output_buffer), internal_format_buffer, args);
             snprintf(file_name_buffer, sizeof(file_name_buffer), "%s.json", logger->file_name ? logger->file_name : "log");
 
             File_Helper_Write(logger->path, file_name_buffer, output_buffer, strlen(output_buffer), FILE_HELPER_MODE_APPEND, false);
             break;
 
-        case LOGGER_OUTPUT_TYPE_FILE_TEXT:
-            snprintf(internal_format_buffer, sizeof(internal_format_buffer), "[%s] [%s] %s\n", time_buffer, logger->id, format);
+        case LOGGER_OUTPUT_TYPE_FILE_TEXT:            
+            snprintf(internal_format_buffer, sizeof(internal_format_buffer), "[%s] [%s] [%s] %s\n", time_buffer, logger->id, level_str, format);
             vsnprintf(output_buffer, sizeof(output_buffer), internal_format_buffer, args);
             //snprintf(file_name_buffer, sizeof(file_name_buffer), "%s.txt", logger->file_name ? logger->file_name : "log");
 
@@ -109,7 +139,7 @@ void Logger_Dispose(Logger *logger)
     if(!logger)
         return;
     if (logger->output_type == LOGGER_OUTPUT_TYPE_CONSOLE)
-        Logger_Write(logger, "%s", "Disposing logger");
+        LOG_WRITE(logger, LOGGER_LEVEL_INFO, "Disposing logger");
     //printf("Disposing logger: %s\n", logger->id);
     if(logger->output_type == LOGGER_OUTPUT_TYPE_FILE_JSON)
     {

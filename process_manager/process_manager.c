@@ -22,7 +22,7 @@ bool ProcessManager_RemoveProcess(ProcessManager *manager, pid_t pid)
     {
         if (manager->processes[i].pid == pid)
         {
-            LOG_WRITE((Logger *)manager->context, "Removing process with PID %d from manager", pid);
+            LOG_WRITE((Logger *)manager->context, LOGGER_LEVEL_INFO, "Removing process with PID %d from manager", pid);
             for (size_t j = i; j < manager->process_count - 1; j++)
             {
                 manager->processes[j] = manager->processes[j + 1];
@@ -80,7 +80,7 @@ pid_t ProcessManager_Spawn(ProcessManager *manager, const char *name, ProcessEnt
     if (manager->process_count >= PROCESS_MANAGER_MAX_PROCESSES)
     {
         if (logger != NULL)
-            Logger_Write(logger,"Cannot spawn process %s: max process limit reached", name);
+            LOG_WRITE(logger, LOGGER_LEVEL_ERROR, "Cannot spawn process %s: max process limit reached", name);
         return -1;
     }
 
@@ -96,14 +96,14 @@ pid_t ProcessManager_Spawn(ProcessManager *manager, const char *name, ProcessEnt
         if (pipe(proc->pipe_parent_to_child) == -1)
         {
             if (logger != NULL)
-                Logger_Write(logger, "%s", "Failed to create parent->child pipe");
+                LOG_WRITE(logger, LOGGER_LEVEL_ERROR, "Failed to create parent->child pipe");
             return -1;
         }
 
         if (pipe(proc->pipe_child_to_parent) == -1)
         {
             if (logger != NULL)
-                Logger_Write(logger, "%s", "Failed to create child->parent pipe");
+                LOG_WRITE(logger, LOGGER_LEVEL_ERROR, "Failed to create child->parent pipe");
             close(proc->pipe_parent_to_child[0]);
             close(proc->pipe_parent_to_child[1]);
             return -1;
@@ -116,7 +116,7 @@ pid_t ProcessManager_Spawn(ProcessManager *manager, const char *name, ProcessEnt
     {
         // Fork failed
         if (logger != NULL)
-            Logger_Write(logger,"Failed to fork process %s: %s", name ? name : "unnamed", strerror(errno));
+            LOG_WRITE(logger, LOGGER_LEVEL_ERROR, "Failed to fork process %s: %s", name ? name : "unnamed", strerror(errno));
         if (create_pipes)
         {
             close(proc->pipe_parent_to_child[0]);
@@ -154,7 +154,7 @@ pid_t ProcessManager_Spawn(ProcessManager *manager, const char *name, ProcessEnt
         manager->process_count++;
 
         if (logger != NULL)
-            Logger_Write(logger, "Spawned process %s with PID %d", proc->name, pid);
+            LOG_WRITE(logger, LOGGER_LEVEL_INFO, "Spawned process %s with PID %d", proc->name, pid);
 
         return pid;
     }
@@ -172,7 +172,7 @@ pid_t ProcessManager_SpawnByExecutable(ProcessManager *manager, const char *name
     if (manager->process_count >= PROCESS_MANAGER_MAX_PROCESSES)
     {
         if (logger != NULL)
-            Logger_Write(logger, "Cannot spawn process %s: max process limit reached", name);
+            LOG_WRITE(logger, LOGGER_LEVEL_ERROR, "Cannot spawn process %s: max process limit reached", name);
         return -1;
     }
 
@@ -188,14 +188,14 @@ pid_t ProcessManager_SpawnByExecutable(ProcessManager *manager, const char *name
         if (pipe(proc->pipe_parent_to_child) == -1)
         {
             if (logger != NULL)
-                Logger_Write(logger, "%s", "Failed to create parent->child pipe");
+                LOG_WRITE(logger, LOGGER_LEVEL_ERROR, "Failed to create parent->child pipe");
             return -1;
         }
 
         if (pipe(proc->pipe_child_to_parent) == -1)
         {
             if (logger != NULL)
-                Logger_Write(logger, "%s", "Failed to create child->parent pipe");
+                LOG_WRITE(logger, LOGGER_LEVEL_ERROR, "Failed to create child->parent pipe");
             close(proc->pipe_parent_to_child[0]);
             close(proc->pipe_parent_to_child[1]);
             return -1;
@@ -276,7 +276,7 @@ pid_t ProcessManager_SpawnByExecutable(ProcessManager *manager, const char *name
         manager->process_count++;
 
         if (logger != NULL)
-            Logger_Write(logger, "Spawned executable process with PID %d for command: %s", pid, executable_path);
+            LOG_WRITE(logger, LOGGER_LEVEL_INFO, "Spawned executable process with PID %d for command: %s", pid, executable_path);
 
         return pid;
     }
@@ -284,7 +284,7 @@ pid_t ProcessManager_SpawnByExecutable(ProcessManager *manager, const char *name
     {
         // Fork failed
         if (logger != NULL)
-            Logger_Write(logger, "Failed to fork for fetcher process");
+            LOG_WRITE(logger, LOGGER_LEVEL_ERROR, "Failed to fork for fetcher process");
         if (create_pipes)
         {
             close(proc->pipe_parent_to_child[0]);
@@ -303,12 +303,12 @@ pid_t ProcessManager_ResstartProcess(ProcessManager *manager, pid_t pid, const c
 
     Logger *logger = (Logger *)manager->context;
 
-    LOG_WRITE(logger, "Restarting process with PID %d using executable: %s", pid, executable_path);
+    LOG_WRITE(logger, LOGGER_LEVEL_INFO, "Restarting process with PID %d using executable: %s", pid, executable_path);
 
     ManagedProcess *proc = ProcessManager_GetByPID(manager, pid);
     if (proc == NULL)
     {
-        LOG_WRITE(logger, "Process with PID %d not found for restart", pid);
+        LOG_WRITE(logger, LOGGER_LEVEL_ERROR, "Process with PID %d not found for restart", pid);
         return false;
     }
 
@@ -316,14 +316,14 @@ pid_t ProcessManager_ResstartProcess(ProcessManager *manager, pid_t pid, const c
 
     int status;
     if (!ProcessManager_WaitForProcess(manager, pid, &status))
-        LOG_WRITE(logger, "Failed to wait for process with PID %d to exit", pid);
+        LOG_WRITE(logger, LOGGER_LEVEL_ERROR, "Failed to wait for process with PID %d to exit", pid);
 
     if (ProcessManager_RemoveProcess(manager, pid) == false)
-        LOG_WRITE(logger, "Failed to remove process with PID %d from manager", pid);
+        LOG_WRITE(logger, LOGGER_LEVEL_ERROR, "Failed to remove process with PID %d from manager", pid);
     
     pid_t new_pid = ProcessManager_SpawnByExecutable(manager, name, executable_path, args, create_pipes);
     if (new_pid < 0)    {
-        LOG_WRITE(logger, "Failed to spawn new process for restart with executable: %s", executable_path);
+        LOG_WRITE(logger, LOGGER_LEVEL_ERROR, "Failed to spawn new process for restart with executable: %s", executable_path);
         return -1;
     }
 
@@ -382,7 +382,7 @@ bool ProcessManager_SendSignal(ProcessManager *manager, pid_t pid, int signal)
     ManagedProcess *proc = ProcessManager_GetByPID(manager, pid);
     if (proc == NULL)
     {
-        Logger_Write(logger, "[ProcessManager] Process with PID %d not found", pid);
+        LOG_WRITE(logger, LOGGER_LEVEL_ERROR, "[ProcessManager] Process with PID %d not found", pid);
         return false;
     }
 
@@ -392,7 +392,7 @@ bool ProcessManager_SendSignal(ProcessManager *manager, pid_t pid, int signal)
         return false;
     }
 
-    Logger_Write(logger, "Sent signal %d to process '%s' (PID %d)", signal, proc->name, pid);
+    LOG_WRITE(logger, LOGGER_LEVEL_INFO, "Sent signal %d to process '%s' (PID %d)", signal, proc->name, pid);
     return true;
 }
 

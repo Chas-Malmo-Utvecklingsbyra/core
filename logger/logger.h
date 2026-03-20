@@ -19,12 +19,20 @@ typedef enum
     LOGGER_RESULT_INVALID_PARAMETER
 } Logger_Result;
 
+typedef enum
+{
+    LOGGER_LEVEL_INFO,
+    LOGGER_LEVEL_WARNING,
+    LOGGER_LEVEL_ERROR
+} Logger_Level;
+
 typedef struct
 {
     const char *id;
     const char *path;
     const char *file_name;
     Logger_Output_Type output_type;
+    Logger_Level level;
 } Logger;
 
 /**
@@ -40,11 +48,12 @@ Logger_Result Logger_Init(Logger *logger, const char *id, const char *path, cons
 /**
  * @brief Writes a log message using the specified logger.
  * @param logger Pointer to the Logger instance.
+ * @param level What level of loginfo triggered.
  * @param format Format string for the log message (printf-style).
  * @param ... Additional arguments for the format string.
  * @return LOGGER_RESULT_OK on success, otherwise an error code.
  */
-Logger_Result Logger_Write(Logger *logger, const char *format, ...);
+Logger_Result Logger_Write(Logger *logger, Logger_Level level, const char *format, ...);
 
 /**
  * @brief Disposes of a Logger instance, releasing any allocated resources.
@@ -60,9 +69,9 @@ void Logger_Dispose(Logger *logger);
  * 
  * Usage: LOG_WRITE(logger, "User %s logged in at %d", username, timestamp);
  */
-#define LOG_WRITE(logger, ...) \
+#define LOG_WRITE(logger, level, ...) \
     do { \
         if ((logger) != NULL) { \
-            Logger_Write((logger), __VA_ARGS__); \
+            Logger_Write((logger), (level), __VA_ARGS__); \
         } \
     } while(0)
