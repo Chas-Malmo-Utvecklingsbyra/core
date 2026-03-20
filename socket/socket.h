@@ -2,18 +2,12 @@
 #define SOCKET_H
 
 #include <stdint.h>
-/* TODO: SS - Support different operating systems (and architectures(?)). */
 
-#ifdef _WIN32
-    #include <winsock2.h>
-    #include <ws2tcpip.h>
-    typedef SOCKET socket_fd_t;
-#else
-    #include <sys/socket.h>
-    #include <arpa/inet.h>
-    #include <unistd.h>
-    typedef int socket_fd_t;
-#endif 
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+
+typedef int socket_fd_t;
 
 typedef struct {
     uint32_t file_descriptor;

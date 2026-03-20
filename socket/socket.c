@@ -1,13 +1,8 @@
-#ifdef _WIN32
-    #include <winsock2.h>
-    #include <w2tcpip.h>
-    static bool winsock_started = false;
-#else
-    #define _POSIX_C_SOURCE 200809L
-    #include <arpa/inet.h>
-    #include <sys/fcntl.h>
-    #include <unistd.h>
-#endif
+
+#define _POSIX_C_SOURCE 200809L
+#include <arpa/inet.h>
+#include <sys/fcntl.h>
+#include <unistd.h>
 
 #include <stdio.h>
 #include <stdbool.h>
@@ -19,35 +14,16 @@
 #include "socket.h"
 #include "../utils/clock_monotonic.h"
 
-/* TODO: SS - Support different operating systems (and architectures(?)). */
-
-
 /* clock monotonic moved to utils directory */
-
-
 
 /* Tries to bind the socket to the port. */
 Socket_Result socket_open_client(const uint32_t port, const char* ip_string, Socket *out_socket) {
 
-    socket_fd_t fd =
-#ifdef _WIN32
-    socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-#else
-    socket(AF_INET, SOCK_STREAM, 0);
-#endif
-
+    socket_fd_t fd = socket(AF_INET, SOCK_STREAM, 0);
     if (fd < 0) {
         perror("Socket creation error");
         return Socket_Result_Port_Already_Used;
     }
-
-#ifndef _WIN32
-    int flags = fcntl(fd, F_GETFL, 0);
-    if(flags < 0 || fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0){
-        close(fd);
-        return Socket_Result_Failed_Fcntl;
-    }
-#endif
 
     out_socket->file_descriptor = (uint32_t)fd;
 
@@ -64,31 +40,18 @@ Socket_Result socket_open_client(const uint32_t port, const char* ip_string, Soc
 
     /* 3. Anslut till servern */
     if (connect(out_socket->file_descriptor, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
-#ifdef _WIN32
-        if(WSAGetLastError() != WSAEWOULDBLOCK && WSAGetLastError() != WSAEINPROGRESS){
-            perror("Connection Failed");
-            closesocket(fd);
-            return Socket_Result_Connection_Failed; 
-        }
-#else   
         if(errno != EINPROGRESS){
             perror("Connection Failed");
             close(fd);
             return Socket_Result_Connection_Failed;
         }
-#endif
     }
-
     return Socket_Result_OK;
 }
 
 /* Tries to close the socket. */
 Socket_Result socket_close(Socket *socket){
-#ifdef _WIN32
-    closesocket(socket->file_descriptor);
-#else
     close(socket->file_descriptor);
-#endif
     socket->file_descriptor = -1;
     /* free(socket); */
     return Socket_Result_OK;
@@ -99,16 +62,6 @@ Socket_Result socket_read(Socket *socket, uint8_t *buffer, const uint32_t buffer
     
     *out_TotalBytesRead = 0;
 
-#ifdef _WIN32
-    int bytesRead = recv(socket->file_descriptor, buffer, buffer_size, 0);
-    if(bytesRead < 0){
-        int err = WSAGetLastError();
-        if(err == WSAEWOULDBLOCK){
-            return Socket_Result_Nothing_Read;
-        }
-        return socket_result_error;
-    }
-#else
     int bytesRead = recv(socket->file_descriptor, buffer, buffer_size, MSG_DONTWAIT);
     if(bytesRead < 0)
     {
@@ -118,7 +71,6 @@ Socket_Result socket_read(Socket *socket, uint8_t *buffer, const uint32_t buffer
         }         
         return socket_result_error;
     }
-#endif
 
     if(bytesRead == 0){
         return socket_result_connection_closed;
@@ -139,20 +91,6 @@ Socket_Result socket_write(Socket *socket, const uint8_t *buffer, const uint32_t
 
     int bytesSent = 0;
 
-#ifdef _WIN32
-    bytesSent = send(socket->file_descriptor, &buffer[0], buffer_size, 0);
-    if(bytesSent < 0)
-    {
-        int err = WSAGetLastError();
-        if(err == WSAEWOULDBLOCK){
-            *out_bytes_sent = 0;
-            return Socket_Result_Nothing_Written_Yet;
-        } else {
-            *out_bytes_sent = 0;
-            return socket_result_error_socket_write;
-        }
-    }
-#else
     bytesSent = send(socket->file_descriptor, &buffer[0], buffer_size, MSG_NOSIGNAL | MSG_DONTWAIT);
     if(bytesSent < 0)
     {
@@ -164,7 +102,6 @@ Socket_Result socket_write(Socket *socket, const uint8_t *buffer, const uint32_t
             return socket_result_error_socket_write;
         }
     }
-#endif
     
     /* TODO: (PR) verifiera att buffer ej är NULL
     verifiera att buffer size är större än 0
