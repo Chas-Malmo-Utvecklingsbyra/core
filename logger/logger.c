@@ -74,7 +74,6 @@ Logger_Result Logger_Write(Logger *logger, Logger_Level level, const char *forma
     const char *level_str = Logger_Get_Level_String(level);
     const char *color = Logger_Get_Color(level);
 
-    char file_name_buffer[64];
     char internal_format_buffer[LOGGER_MAX_LOG_BUFFER_SIZE];
     char output_buffer[LOGGER_MAX_LOG_BUFFER_SIZE];
 
@@ -93,30 +92,10 @@ Logger_Result Logger_Write(Logger *logger, Logger_Level level, const char *forma
             
             printf("%s", output_buffer);
             break;
-        
-        case LOGGER_OUTPUT_TYPE_FILE_JSON: /* WIP, DONT USE */
-            /* TODO: Format to JSON, filename? */
-            if(File_Helper_Is_File_Empty(logger->path, "log.json"))
-            {
-                /* If file is empty, start the JSON array */
-                File_Helper_Write(logger->path, "log.json", "[\n", 2, FILE_HELPER_MODE_WRITE, true);
-            }
-            else
-            {
-                /* If file is not empty, append a comma to separate entries */
-                File_Helper_Write(logger->path, "log.json", ",\n", 2, FILE_HELPER_MODE_APPEND, false);
-            }
-            snprintf(internal_format_buffer, sizeof(internal_format_buffer), "{\"time\":\"%s\", \"id\":\"%s\", \"level\":\"%s\", \"message\":\"%s\"}\n", time_buffer, logger->id, Logger_Get_Level_String(level), format);
-            vsnprintf(output_buffer, sizeof(output_buffer), internal_format_buffer, args);
-            snprintf(file_name_buffer, sizeof(file_name_buffer), "%s.json", logger->file_name ? logger->file_name : "log");
-
-            File_Helper_Write(logger->path, file_name_buffer, output_buffer, strlen(output_buffer), FILE_HELPER_MODE_APPEND, false);
-            break;
 
         case LOGGER_OUTPUT_TYPE_FILE_TEXT:            
             snprintf(internal_format_buffer, sizeof(internal_format_buffer), "[%s] [%s] [%s] %s\n", time_buffer, logger->id, level_str, format);
             vsnprintf(output_buffer, sizeof(output_buffer), internal_format_buffer, args);
-            //snprintf(file_name_buffer, sizeof(file_name_buffer), "%s.txt", logger->file_name ? logger->file_name : "log");
 
             File_Helper_Write(logger->path, logger->file_name, output_buffer, strlen(output_buffer), FILE_HELPER_MODE_APPEND, false);
             break;
@@ -124,10 +103,6 @@ Logger_Result Logger_Write(Logger *logger, Logger_Level level, const char *forma
         default:
             break;
     }
-    
-    
-
-    // TODO: Decide how to write to file and when, and where should we do it
 
     va_end(args);
 
@@ -140,15 +115,4 @@ void Logger_Dispose(Logger *logger)
         return;
     if (logger->output_type == LOGGER_OUTPUT_TYPE_CONSOLE)
         LOG_WRITE(logger, LOGGER_LEVEL_INFO, "Disposing logger");
-    //printf("Disposing logger: %s\n", logger->id);
-    if(logger->output_type == LOGGER_OUTPUT_TYPE_FILE_JSON)
-    {
-        // Close the JSON array properly
-        if(!File_Helper_Is_File_Empty(logger->path, "log.json"))
-        {
-            printf("Closing JSON log file\n");
-            File_Helper_Write(logger->path, "log.json", "\n]", 2, FILE_HELPER_MODE_APPEND, false);
-        }
-    }
-    // TODO: Decide what we want to do here.
 }
