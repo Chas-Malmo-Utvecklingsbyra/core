@@ -205,8 +205,6 @@ Http_Request* Http_Parser_Parse(const char* buffer)
             is_first_line = false;
         }
 
-        free(duped);
-        duped = NULL;
         if (line_start[0] == '\0') {
             has_found_body = true;
             break;
@@ -220,7 +218,10 @@ Http_Request* Http_Parser_Parse(const char* buffer)
 
         /* Could not find Content-Length thus making data not possible to get without risking security as of right now */
         if (header_value == NULL)
+        {
+            free(duped);
             return NULL;
+        }
 
         char* pend;
         long int header_value_as_int = strtol(header_value, &pend, 10);
@@ -228,6 +229,7 @@ Http_Request* Http_Parser_Parse(const char* buffer)
         /* Converting the number was not possible */
         if (header_value_as_int == 0L)
         {
+            free(duped);
             return NULL;
         }
 
@@ -239,6 +241,9 @@ Http_Request* Http_Parser_Parse(const char* buffer)
 #ifdef HTTP_PARSER_DEBUG
     printf("Body: [%s]\n", request->data);
 #endif
+
+    free(duped);
+    duped = NULL;
 
     return request;
 }
